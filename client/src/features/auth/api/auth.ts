@@ -1,4 +1,5 @@
 import { apiClient } from '@/services/apiClient';
+import { publicApiClient } from '@/services/publicApiClient';
 import { mapApiResponse, type ApiResponse } from '@/types/api-mapper';
 import { z } from 'zod';
 
@@ -119,14 +120,19 @@ export type ResetPasswordPayload = z.infer<typeof ResetPasswordSchema>;
 export type RequestResetPasswordPayload = Pick<ResetPasswordPayload, 'email'>;
 
 export const login = async (payload: LoginPayload): Promise<string> => {
-  const { data } = await apiClient.post<ApiResponse<LoginResponse>>('auth/login', payload);
+  const { data } = await publicApiClient.post<ApiResponse<LoginResponse>>('auth/login', payload);
   const accessToken = mapApiResponse(data).accessToken;
   setAccessToken(accessToken);
   return accessToken;
 };
 
+export const refreshAccessToken = async (): Promise<string> => {
+  const { data } = await publicApiClient.post<ApiResponse<LoginResponse>>('auth/token/refresh');
+  return mapApiResponse(data).accessToken;
+};
+
 export const registerUser = async (payload: RegisterUserPayload): Promise<CurrentUser> => {
-  const { data } = await apiClient.post<ApiResponse<CurrentUser>>('auth/register', payload);
+  const { data } = await publicApiClient.post<ApiResponse<CurrentUser>>('auth/register', payload);
   return mapApiResponse(data);
 };
 

@@ -1,4 +1,4 @@
-import { getAccessToken, removeAccessToken } from '@/features/auth/api/auth';
+import { getAccessToken, refreshAccessToken, removeAccessToken } from '@/features/auth/api/auth';
 import axios, {
   AxiosError,
   AxiosHeaders,
@@ -28,10 +28,26 @@ const isTokenExpiring = (token: string | null): boolean => {
   }
 };
 
+let refreshPromise: Promise<string | null> | null = null;
+
+export const runRefresh = (refreshFn: () => Promise<string | null>) => {
+  if (!refreshPromise) {
+    refreshPromise = refreshFn().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+};
+
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    const token = getAccessToken();
-    if (token && !isTokenExpiring(token)) {
+    let token = getAccessToken();
+
+    if (isTokenExpiring(token)) {
+      token = await runRefresh(refreshAccessToken);
+    }
+
+    if (token) {
       const headers = AxiosHeaders.from(config.headers ?? {});
       headers.set('Authorization', `Bearer ${token}`);
       config.headers = headers;
@@ -44,8 +60,26 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError) => {
-    if (error.response?.status === 401) {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        const newToken = await runRefresh(refreshAccessToken);
+        if (newToken) {
+          const headers = AxiosHeaders.from(originalRequest.headers ?? {});
+          headers.set('Authorization', `Bearer ${newToken}`);
+          originalRequest.headers = headers;
+          return apiClient(originalRequest);
+        }
+      } catch {
+        // fall through
+      }
+
       removeAccessToken();
+      // queryClient.setQueryData(APP_QUERY_KEYS.auth.me, null);
+      // queryClient.removeQueries({ queryKey: APP_QUERY_KEYS.auth.me });
     }
     return Promise.reject(error);
   },
