@@ -38,7 +38,7 @@ export const authorize =
     next();
   };
 
-export const requireVerifiedEmail = (req: AuthRequest, res: Response, next: NextFunction) => {
+export const requireVerifiedEmail = () => (req: AuthRequest, res: Response, next: NextFunction) => {
   const user = req.user;
   if (!user) {
     throw new UnauthorizedError();

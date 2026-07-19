@@ -11,7 +11,7 @@ import {
 } from '../schema/auth.schema.js';
 import { asyncHandler } from '../../utility/asyncHandler.js';
 import { authController } from '../controllers/auth.controller.js';
-import { verifyJWT } from '../../middlewares/auth.middlewares.js';
+import { requireVerifiedEmail, verifyJWT } from '../../middlewares/auth.middlewares.js';
 
 const router = Router();
 
@@ -31,6 +31,7 @@ router.post(
   '/change-password',
   validateSchema({ body: ChangePasswordSchema }),
   verifyJWT,
+  requireVerifiedEmail,
   asyncHandler(authController.changePassword),
 );
 
@@ -51,12 +52,14 @@ router.post(
 router.post(
   '/request-password-reset',
   validateSchema({ body: RequestPasswordResetSchema }),
+  requireVerifiedEmail,
   asyncHandler(authController.requestPasswordReset),
 );
 
 router.post(
   '/reset-password',
   validateSchema({ body: ResetPasswordSchema }),
+  requireVerifiedEmail,
   asyncHandler(authController.resetPassword),
 );
 

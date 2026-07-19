@@ -84,10 +84,6 @@ class AuthService implements IAuthService {
       username: data.username,
       passwordHash,
     });
-    await this.requestEmailVerification({
-      email: newUser.email,
-    });
-
     return newUser;
   }
 
@@ -113,10 +109,6 @@ class AuthService implements IAuthService {
 
     if (!user.isActive) {
       throw new ForbiddenError('Your account has been deactivated.');
-    }
-
-    if (!user.emailVerified) {
-      throw new ForbiddenError('Please verify your email first.');
     }
 
     const accessToken = this.generateAccessToken(user);

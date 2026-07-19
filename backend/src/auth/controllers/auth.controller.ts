@@ -16,6 +16,8 @@ import { authService } from '../services/auth.service.js';
 import { config } from '../../config/config.js';
 import { ApiError, UnauthorizedError } from '../../utility/apiError.js';
 
+const REFRESH_TOKEN_COOKIE = 'refreshToken';
+
 export interface IAuthController {
   register(
     req: TypedRequest<CreateUserData>,
@@ -62,15 +64,13 @@ export interface IAuthController {
 }
 
 class AuthController implements IAuthController {
-  private readonly REFRESH_TOKEN_COOKIE = 'refreshToken';
-
   async login(
     req: TypedRequest<LoginData>,
     res: Response,
   ): Promise<Response<ApiResponseType<LoginResponse>>> {
     const { accessToken, refreshToken } = await authService.login(req.validated.body);
 
-    res.cookie(this.REFRESH_TOKEN_COOKIE, refreshToken, {
+    res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, {
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
       secure: config.isProduction,
@@ -109,9 +109,9 @@ class AuthController implements IAuthController {
   }
 
   async logout(req: TypedRequest, res: Response): Promise<Response<ApiResponseType<null>>> {
-    const refreshToken = req.cookies?.[this.REFRESH_TOKEN_COOKIE];
+    const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE];
     if (!refreshToken) throw new UnauthorizedError();
-    res.clearCookie(this.REFRESH_TOKEN_COOKIE, {
+    res.clearCookie(REFRESH_TOKEN_COOKIE, {
       httpOnly: true,
       secure: config.isProduction, //HTTPS only in production
       sameSite: config.isProduction ? 'none' : 'strict', //CSRF protection
@@ -128,7 +128,7 @@ class AuthController implements IAuthController {
     req: TypedRequest,
     res: Response,
   ): Promise<Response<ApiResponseType<LoginResponse>>> {
-    const refreshToken = req.cookies?.[this.REFRESH_TOKEN_COOKIE];
+    const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE];
     if (!refreshToken) throw new UnauthorizedError();
 
     const accessToken = await authService.rotateToken(refreshToken);
@@ -172,7 +172,13 @@ class AuthController implements IAuthController {
     req: TypedRequest<RequestPasswordResetData>,
     res: Response,
   ): Promise<Response<ApiResponseType<null>>> {
-    throw new ApiError('Method not implemented');
+    await authService.requestPasswordReset(req.validated.body);
+    return sendApiResponse({
+      res,
+      statusCode: 200,
+      message: 'Password reset request sent ',
+      data: null,
+    });
   }
 
   async logoutAllDevices(
@@ -198,7 +204,13 @@ class AuthController implements IAuthController {
     req: TypedRequest<ResetPasswordData>,
     res: Response,
   ): Promise<Response<ApiResponseType<null>>> {
-    throw new ApiError('Method not implemented');
+    await authService.resetPassword(req.validated.body);
+    return sendApiResponse({
+      res,
+      statusCode: 200,
+      message: 'Password reset successfully ',
+      data: null,
+    });
   }
 }
 
