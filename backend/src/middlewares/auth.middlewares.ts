@@ -3,9 +3,10 @@ import type { NextFunction, Request, Response } from 'express';
 import { ForbiddenError, UnauthorizedError } from '../utility/apiError.js';
 import { authService } from '../auth/services/auth.service.js';
 import { config } from '../config/config.js';
-import type { TokenPayload } from '../auth/auth.types.js';
+import type { TokenPayload } from '../auth/types/auth.types.js';
 import type { Role } from '../generated/prisma/enums.js';
 import { asyncHandler } from '../utility/asyncHandler.js';
+import type { AuthRequest } from '../types/express.js';
 
 export const verifyJWT = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const token = req.header('authorization')?.split(' ')[1];
@@ -25,7 +26,7 @@ export const verifyJWT = asyncHandler(async (req: Request, res: Response, next: 
 
 export const authorize =
   (...roles: Role[]) =>
-  (req: Request, res: Response, next: NextFunction) => {
+  (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
       throw new UnauthorizedError();
     }
@@ -36,3 +37,16 @@ export const authorize =
 
     next();
   };
+
+export const requireVerifiedEmail = (req: AuthRequest, res: Response, next: NextFunction) => {
+  const user = req.user;
+  if (!user) {
+    throw new UnauthorizedError();
+  }
+
+  if (!user.emailVerified) {
+    throw new ForbiddenError('Please verify your email first');
+  }
+
+  next();
+};

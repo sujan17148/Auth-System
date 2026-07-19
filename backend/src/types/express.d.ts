@@ -10,6 +10,7 @@ interface Validated {
 declare global {
   namespace Express {
     interface Request {
+      user?: SafeUserData;
       cookies?: unknown;
       validated: Validated;
     }
