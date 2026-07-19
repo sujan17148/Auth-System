@@ -52,14 +52,12 @@ router.post(
 router.post(
   '/request-password-reset',
   validateSchema({ body: RequestPasswordResetSchema }),
-  requireVerifiedEmail,
   asyncHandler(authController.requestPasswordReset),
 );
 
 router.post(
   '/reset-password',
   validateSchema({ body: ResetPasswordSchema }),
-  requireVerifiedEmail,
   asyncHandler(authController.resetPassword),
 );
 
