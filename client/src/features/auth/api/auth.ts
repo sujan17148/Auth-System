@@ -3,6 +3,8 @@ import { publicApiClient } from '@/services/publicApiClient';
 import { mapApiResponse, type ApiResponse } from '@/types/api-mapper';
 import { z } from 'zod';
 
+export type CurrentUserRole = 'Admin' | 'User';
+
 let accessToken: string | null = null;
 
 export const getAccessToken = (): string | null => accessToken;
@@ -23,6 +25,7 @@ export interface CurrentUser {
   firstName: string;
   lastName: string;
   email: string;
+  role: CurrentUserRole;
   isActive: boolean;
   emailVerified: boolean;
   createdAt: string;
@@ -126,6 +129,11 @@ export const login = async (payload: LoginPayload): Promise<string> => {
   return accessToken;
 };
 
+export const fetchCurrentUser = async (): Promise<CurrentUser> => {
+  const { data } = await apiClient.get<ApiResponse<CurrentUser>>('auth/me');
+  return mapApiResponse(data);
+};
+
 export const refreshAccessToken = async (): Promise<string> => {
   const { data } = await publicApiClient.post<ApiResponse<LoginResponse>>('auth/token/refresh');
   return mapApiResponse(data).accessToken;
@@ -148,9 +156,14 @@ export const verifyEmail = async (payload: VerifyEmailPayload): Promise<CurrentU
 };
 
 export const requestPasswordReset = async (payload: RequestResetPasswordPayload): Promise<void> => {
-  await apiClient.post<ApiResponse<CurrentUser>>('auth/request-password-reset', payload);
+  await publicApiClient.post<ApiResponse<CurrentUser>>('auth/request-password-reset', payload);
 };
 
 export const resetPassword = async (payload: ResetPasswordPayload): Promise<void> => {
-  await apiClient.post<ApiResponse<CurrentUser>>('auth/reset-password', payload);
+  await publicApiClient.post<ApiResponse<CurrentUser>>('auth/reset-password', payload);
+};
+
+export const logoutUser = async (): Promise<void> => {
+  await publicApiClient.post('auth/logout');
+  removeAccessToken();
 };

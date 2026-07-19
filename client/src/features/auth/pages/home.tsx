@@ -1,22 +1,19 @@
-import { Link } from 'react-router-dom';
-
-import { Button } from '@/components/ui/button';
+import { Sparkles } from 'lucide-react';
 
 export default function HomePage() {
   return (
-    <main className="flex min-h-screen items-center justify-center">
-      <div className="flex w-full max-w-sm flex-col gap-4">
-        <Button asChild>
-          <Link to="auth/login">Login</Link>
-        </Button>
+    <main className="grow flex items-center justify-center px-5">
+      <div className="max-w-xl text-center">
+        <div className="gradient-primary mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl">
+          <Sparkles className="h-8 w-8 text-primary-foreground" />
+        </div>
 
-        <Button asChild variant="secondary">
-          <Link to="auth/register">Register</Link>
-        </Button>
+        <h1 className="mb-4 text-4xl font-bold tracking-tight">Authentication System</h1>
 
-        <Button asChild variant="outline">
-          <Link to="auth/verify-email">Verify Email</Link>
-        </Button>
+        <p className="mb-8 text-muted-foreground">
+          A secure authentication system built with React, Express, Prisma, PostgreSQL and JWT
+          featuring email verification, password reset and role-based authentication.
+        </p>
       </div>
     </main>
   );

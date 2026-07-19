@@ -1,4 +1,6 @@
+import { APP_QUERY_KEYS } from '@/constants/queryKeys';
 import { getAccessToken, refreshAccessToken, removeAccessToken } from '@/features/auth/api/auth';
+import { queryClient } from '@/services/queryClient';
 import axios, {
   AxiosError,
   AxiosHeaders,
@@ -78,8 +80,8 @@ apiClient.interceptors.response.use(
       }
 
       removeAccessToken();
-      // queryClient.setQueryData(APP_QUERY_KEYS.auth.me, null);
-      // queryClient.removeQueries({ queryKey: APP_QUERY_KEYS.auth.me });
+      queryClient.setQueryData(APP_QUERY_KEYS.auth.me, null);
+      queryClient.removeQueries({ queryKey: APP_QUERY_KEYS.auth.me });
     }
     return Promise.reject(error);
   },

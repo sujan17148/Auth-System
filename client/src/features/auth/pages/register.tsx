@@ -10,12 +10,15 @@ import TaskInput from '@/components/ui/task-input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 import {
+  login,
   registerUser,
   RegisterUserSchema,
   type RegisterUserPayload,
 } from '@/features/auth/api/auth';
 import { toast } from 'sonner';
 import { extractError } from '@/utility/extractError';
+import { queryClient } from '@/services/queryClient';
+import { APP_QUERY_KEYS } from '@/constants/queryKeys';
 
 const defaultRegisterFormData: RegisterUserPayload = {
   firstName: '',
@@ -46,10 +49,13 @@ export default function Register() {
   const submitRegisterForm = async (data: RegisterUserPayload) => {
     setError(null);
     try {
-      await registerUser(data);
+      const newUser = await registerUser(data);
+      queryClient.setQueryData(APP_QUERY_KEYS.auth.me, newUser);
+      await login({ identifier: data.email, password: data.password });
       reset();
+      const isAdmin = newUser.role === 'Admin';
+      navigate(isAdmin ? '/app/admin' : '/app');
       toast.success('Registration successfull');
-      navigate('/auth/verify-email', { state: { email: data.email } });
     } catch (err) {
       reset({ password: '' });
       setError(extractError(err));

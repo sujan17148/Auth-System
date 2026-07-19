@@ -63,10 +63,6 @@ export default function ResetPassword() {
 
         <h1 className="mb-1 text-center text-2xl font-bold">Reset your password</h1>
 
-        <p className="mb-6 text-center text-sm text-muted-foreground">
-          Enter the verification code and choose a new password.
-        </p>
-
         {error && (
           <Alert variant="destructive" className="mb-4">
             <AlertTitle>Reset Failed</AlertTitle>
@@ -75,13 +71,11 @@ export default function ResetPassword() {
         )}
 
         <form className="space-y-4" onSubmit={handleSubmit(submitResetPasswordForm)}>
-          <TaskInput
-            label="Email"
-            type="email"
-            placeholder="you@example.com"
-            {...register('email')}
-            error={errors.email?.message}
-          />
+          <div className="space-y-1 text-center">
+            <p className="text-sm text-muted-foreground">We've sent a verification code to</p>
+
+            <p className="font-medium text-sm">{emailState}</p>
+          </div>
 
           <TaskInput
             label="Verification Code"
