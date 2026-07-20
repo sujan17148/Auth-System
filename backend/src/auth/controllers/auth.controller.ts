@@ -16,7 +16,7 @@ import { authService } from '../services/auth.service.js';
 import { config } from '../../config/config.js';
 import { ApiError, UnauthorizedError } from '../../utility/apiError.js';
 
-const REFRESH_TOKEN_COOKIE = 'refreshToken';
+export const REFRESH_TOKEN_COOKIE = 'refreshToken';
 
 export interface IAuthController {
   register(

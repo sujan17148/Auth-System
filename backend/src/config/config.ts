@@ -20,4 +20,10 @@ export const config = {
   smtpPort: requireEnv('SMTP_PORT'),
   smtpUser: requireEnv('SMTP_USER'),
   smtpPassword: requireEnv('SMTP_PASS'),
+
+  googleClientId: requireEnv('GOOGLE_CLIENT_ID'),
+  googleClientSecret: requireEnv('GOOGLE_CLIENT_SECRET'),
+  googleRedirectUri: requireEnv('GOOGLE_REDIRECT_URI'),
+
+  clientUrl: requireEnv('CLIENT_URL'),
 } as const;

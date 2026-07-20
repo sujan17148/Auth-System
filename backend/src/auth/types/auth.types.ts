@@ -27,8 +27,10 @@ export interface LoginServiceResponse {
 export type UserWithPasswordData = User;
 export type SafeUserData = Omit<User, 'passwordHash'>;
 export type CreateUserData = z.infer<typeof CreateUserSchema>;
+
 export type CreateUserRepositoryData = Omit<CreateUserData, 'password'> & {
-  passwordHash: string;
+  passwordHash: string | null;
+  emailVerified?: boolean;
 };
 
 export type LoginData = z.infer<typeof LoginSchema>;

@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { extractError } from '@/utility/extractError';
 import { queryClient } from '@/services/queryClient';
 import { APP_QUERY_KEYS } from '@/constants/queryKeys';
+import LoginWithGoogleButton from '@/components/ui/login-with-google-button';
 
 const defaultRegisterFormData: RegisterUserPayload = {
   firstName: '',
@@ -71,11 +72,7 @@ export default function Register() {
           </div>
         </div>
 
-        <h1 className="mb-1 text-center text-2xl font-bold">Create your account</h1>
-
-        <p className="mb-6 text-center text-sm text-muted-foreground">
-          Join PrepMate and start preparing today.
-        </p>
+        <h1 className="mb-3 text-center text-2xl font-bold">Create your account</h1>
 
         {error && (
           <Alert variant="destructive" className="mb-4">
@@ -157,6 +154,14 @@ export default function Register() {
             )}
           </Button>
         </form>
+
+        <div className="mt-6 flex items-center gap-3">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-xs text-muted-foreground">OR</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
+        <LoginWithGoogleButton />
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Already have an account?{' '}

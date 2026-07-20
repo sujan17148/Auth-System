@@ -11,6 +11,7 @@ import { extractError } from '@/utility/extractError';
 import { toast } from 'sonner';
 import { APP_QUERY_KEYS } from '@/constants/queryKeys';
 import { queryClient } from '@/services/queryClient';
+import LoginWithGoogleButton from '@/components/ui/login-with-google-button';
 
 const defaultLoginFormData: LoginPayload = {
   identifier: '',
@@ -58,11 +59,8 @@ export default function Login() {
           </div>
         </div>
         <h1 className="text-2xl font-display font-bold text-center mb-1">Welcome back</h1>
-        <p className="text-sm text-muted-foreground text-center mb-6">
-          Log in to your Prepmate account
-        </p>
+        <p className="text-sm text-muted-foreground text-center mb-6">Log in to your account</p>
 
-        {/* Alert for error */}
         {error && (
           <Alert variant="destructive" className="mb-4">
             <AlertTitle>Unable to Login</AlertTitle>
@@ -111,7 +109,15 @@ export default function Login() {
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-muted-foreground">
+        <div className="mt-6 flex items-center gap-3">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-xs text-muted-foreground">OR</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
+        <LoginWithGoogleButton />
+
+        <p className="mt-8 text-center text-sm text-muted-foreground">
           Don't have an account?{' '}
           <Link to="/auth/register" className="text-primary font-medium hover:underline">
             Sign up

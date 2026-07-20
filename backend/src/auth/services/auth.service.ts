@@ -1,5 +1,3 @@
-import { config } from '../../config/config.js';
-import jwt, { type SignOptions } from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import type {
   ChangePasswordData,
@@ -10,7 +8,6 @@ import type {
   RequestPasswordResetData,
   ResetPasswordData,
   SafeUserData,
-  TokenPayload,
   VerifyEmailData,
 } from '../types/auth.types.js';
 import { userRepository } from '../repository/user.repository.js';
@@ -24,6 +21,7 @@ import {
   UnauthorizedError,
 } from '../../utility/apiError.js';
 import { mailService } from '../../mail/mail.service.js';
+import { tokenService, type TokenPair } from './token.service.js';
 
 export interface IAuthService {
   getUserById(id: string): Promise<SafeUserData | null>;
@@ -44,19 +42,6 @@ export interface IAuthService {
 class AuthService implements IAuthService {
   private readonly SALT_ROUNDS = 10;
   private readonly OTP_EXPIRY_MINUTES = 2;
-
-  private readonly accessTokenSecret = config.accessTokenKey;
-  private readonly accessTokenExpiry = config.accessTokenExpiry;
-  private readonly refreshTokenSecret = config.refreshTokenKey;
-  private readonly refreshTokenExpiry = config.refreshTokenExpiry;
-
-  private readonly accessOptions: SignOptions = {
-    expiresIn: this.accessTokenExpiry as string & SignOptions['expiresIn'],
-  };
-
-  private readonly refreshOptions: SignOptions = {
-    expiresIn: this.refreshTokenExpiry as string & SignOptions['expiresIn'],
-  };
 
   async getUserById(id: string): Promise<SafeUserData | null> {
     const user = await userRepository.getUserById(id);
@@ -87,7 +72,7 @@ class AuthService implements IAuthService {
     return newUser;
   }
 
-  async login(data: LoginData): Promise<LoginServiceResponse> {
+  async login(data: LoginData): Promise<TokenPair> {
     const user = await userRepository.getUserByIdentifier(data.identifier);
 
     if (!user) {
@@ -111,14 +96,11 @@ class AuthService implements IAuthService {
       throw new ForbiddenError('Your account has been deactivated.');
     }
 
-    const accessToken = this.generateAccessToken(user);
-    const refreshToken = this.generateRefreshToken(user);
-
-    return { accessToken, refreshToken };
+    return tokenService.generateTokenPair(user);
   }
 
   async rotateToken(refreshToken: string): Promise<string> {
-    const decoded = jwt.verify(refreshToken, this.refreshTokenSecret) as TokenPayload;
+    const decoded = tokenService.verifyRefreshToken(refreshToken);
     const user = await this.getUserById(decoded.id);
     if (!user) throw new UnauthorizedError('Invalid or expired token');
 
@@ -126,29 +108,7 @@ class AuthService implements IAuthService {
       throw new ForbiddenError('Account has been deactivated.');
     }
 
-    return this.generateAccessToken(user);
-  }
-
-  private generateAccessToken(user: SafeUserData): string {
-    return jwt.sign(
-      {
-        id: user.id,
-        role: user.role,
-      },
-      this.accessTokenSecret,
-      this.accessOptions,
-    );
-  }
-
-  private generateRefreshToken(user: SafeUserData): string {
-    return jwt.sign(
-      {
-        id: user.id,
-        role: user.role,
-      },
-      this.refreshTokenSecret,
-      this.refreshOptions,
-    );
+    return tokenService.generateAccessToken(user);
   }
 
   private generateOtp(): string {
@@ -196,7 +156,9 @@ class AuthService implements IAuthService {
 
     await emailVerificationRepository.upsertOtp({ userId: user.id, otpHash, expiresAt });
 
-    void mailService.sendVerificationEmail({ email: user.email, firstName: user.firstName, otp });
+    console.log(otp);
+
+    // void mailService.sendVerificationEmail({ email: user.email, firstName: user.firstName, otp });
   }
 
   async requestPasswordReset(data: RequestPasswordResetData): Promise<void> {
@@ -224,11 +186,13 @@ class AuthService implements IAuthService {
       expiresAt,
     });
 
-    void mailService.sendPasswordResetEmail({
-      email: user.email,
-      firstName: user.firstName,
-      otp,
-    });
+    console.log(otp);
+
+    // void mailService.sendPasswordResetEmail({
+    //   email: user.email,
+    //   firstName: user.firstName,
+    //   otp,
+    // });
   }
 
   async resetPassword(data: ResetPasswordData): Promise<void> {

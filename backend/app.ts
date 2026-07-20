@@ -7,6 +7,7 @@ import { errorHandler } from './src/utility/errorHandler.js';
 import { config } from './src/config/config.js';
 
 import authRoutes from './src/auth/routes/auth.routes.js';
+import oauthRoutes from './src/auth/routes/oauth.routes.js';
 
 export const app = express();
 
@@ -37,5 +38,6 @@ app.get('/health', (_, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/oauth', oauthRoutes);
 
 app.use(errorHandler);
