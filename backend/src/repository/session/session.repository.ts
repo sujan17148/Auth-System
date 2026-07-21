@@ -1,17 +1,6 @@
 import type { Prisma, Session } from '../../generated/prisma/client.js';
 import { prisma } from '../../lib/prisma.js';
-
-export interface ISessionRepository {
-  createSession(data: Prisma.SessionUncheckedCreateInput): Promise<Session>;
-
-  getSessionsByUserId(userId: string): Promise<Session[]>;
-
-  updateLastActivity(sessionId: string): Promise<Session>;
-
-  deleteSession(sessionId: string): Promise<void>;
-
-  deleteAllSessions(userId: string): Promise<void>;
-}
+import type { ISessionRepository } from './repository.types.js';
 
 class SessionRepository implements ISessionRepository {
   async createSession(data: Prisma.SessionUncheckedCreateInput): Promise<Session> {

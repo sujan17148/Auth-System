@@ -45,6 +45,6 @@ export class UnprocessableError extends ApiError {
 
 export class ConflictError extends ApiError {
   constructor(message = 'Resoure already exist') {
-    super(message, 422);
+    super(message, 409);
   }
 }

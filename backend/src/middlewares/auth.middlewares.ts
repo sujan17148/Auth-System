@@ -26,7 +26,7 @@ export const verifyJWT = asyncHandler(async (req: Request, res: Response, next: 
 
 export const authorize =
   (...roles: Role[]) =>
-  (req: AuthRequest, res: Response, next: NextFunction) => {
+  (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
       throw new UnauthorizedError();
     }

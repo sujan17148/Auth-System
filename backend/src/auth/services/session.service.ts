@@ -1,6 +1,6 @@
 import type { Session } from '../../generated/prisma/client.js';
+import { sessionRepository } from '../../repository/session/session.repository.js';
 import { UnauthorizedError } from '../../utility/apiError.js';
-import { sessionRepository } from '../repository/session.repository.js';
 import { tokenService } from './token.service.js';
 
 export interface CreateSessionData {

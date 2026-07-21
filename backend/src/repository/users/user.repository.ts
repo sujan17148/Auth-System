@@ -1,29 +1,14 @@
-import { prisma } from '../../lib/prisma.js';
 import type {
   CreateUserRepositoryData,
   SafeUserData,
   UserWithPasswordData,
-} from '../types/auth.types.js';
+} from '../../auth/types/auth.types.js';
+import { prisma } from '../../lib/prisma.js';
+import type { IUserRepository, UsersSummary } from './reposiory.types.js';
 
 export const safeUserOmit = {
   passwordHash: true,
 } as const;
-
-export interface IUserRepository {
-  getUserById(id: string): Promise<SafeUserData | null>;
-  getUserWithPasswordById(id: string): Promise<UserWithPasswordData | null>;
-  getUserByEmail(email: string): Promise<SafeUserData | null>;
-  getUserByUsername(username: string): Promise<SafeUserData | null>;
-  getUserByIdentifier(identifier: string): Promise<UserWithPasswordData | null>;
-
-  createUser(data: CreateUserRepositoryData): Promise<SafeUserData>;
-  updatePassword(id: string, passwordHash: string): Promise<SafeUserData>;
-  verifyEmail(id: string): Promise<SafeUserData>;
-  changeEmail(id: string, email: string): Promise<SafeUserData>;
-  changeUsername(id: string, username: string): Promise<SafeUserData>;
-  deactivateUser(id: string): Promise<SafeUserData>;
-  activateUser(id: string): Promise<SafeUserData>;
-}
 
 class UserRepository implements IUserRepository {
   async getUserById(id: string): Promise<SafeUserData | null> {
@@ -83,13 +68,6 @@ class UserRepository implements IUserRepository {
       omit: safeUserOmit,
     });
   }
-  async changeEmail(id: string, email: string): Promise<SafeUserData> {
-    return prisma.user.update({
-      where: { id },
-      data: { email },
-      omit: safeUserOmit,
-    });
-  }
 
   async changeUsername(id: string, username: string): Promise<SafeUserData> {
     return prisma.user.update({
@@ -98,18 +76,43 @@ class UserRepository implements IUserRepository {
       omit: safeUserOmit,
     });
   }
-  async deactivateUser(id: string): Promise<SafeUserData> {
-    return prisma.user.update({
-      where: { id },
-      data: { isActive: false },
+
+  async getAllUsers(): Promise<SafeUserData[]> {
+    return await prisma.user.findMany({
       omit: safeUserOmit,
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
   }
 
-  async activateUser(id: string): Promise<SafeUserData> {
-    return prisma.user.update({
-      where: { id },
-      data: { isActive: true },
+  async getUsersSummary(): Promise<UsersSummary> {
+    const [totalUsers, activeUsers, inactiveUsers, verifiedUsers, unverifiedUsers] =
+      await Promise.all([
+        prisma.user.count(),
+        prisma.user.count({ where: { isActive: true } }),
+        prisma.user.count({ where: { isActive: false } }),
+        prisma.user.count({ where: { emailVerified: true } }),
+        prisma.user.count({ where: { emailVerified: false } }),
+      ]);
+
+    return {
+      totalUsers,
+      activeUsers,
+      inactiveUsers,
+      verifiedUsers,
+      unverifiedUsers,
+    };
+  }
+
+  async changeUserActiveStatus(id: string, isActive: boolean): Promise<SafeUserData> {
+    return await prisma.user.update({
+      where: {
+        id,
+      },
+      data: {
+        isActive,
+      },
       omit: safeUserOmit,
     });
   }

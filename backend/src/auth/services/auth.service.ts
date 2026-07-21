@@ -11,9 +11,6 @@ import type {
   SafeUserData,
   VerifyEmailData,
 } from '../types/auth.types.js';
-import { userRepository } from '../repository/user.repository.js';
-import { passwordResetRepository } from '../repository/password-reset.repository.js';
-import { emailVerificationRepository } from '../repository/email-verification.repository.js';
 import {
   ApiError,
   ConflictError,
@@ -25,6 +22,9 @@ import { mailService } from '../../mail/mail.service.js';
 import { tokenService, type TokenPair } from './token.service.js';
 import { sessionService } from './session.service.js';
 import { prisma } from '../../lib/prisma.js';
+import { userRepository } from '../../repository/users/user.repository.js';
+import { passwordResetRepository } from '../../repository/password-reset/password-reset.repository.js';
+import { emailVerificationRepository } from '../../repository/email-verification/email-verification.repository.js';
 
 export interface IAuthService {
   getUserById(id: string): Promise<SafeUserData | null>;
@@ -36,10 +36,7 @@ export interface IAuthService {
   requestPasswordReset(data: RequestPasswordResetData): Promise<void>;
   resetPassword(data: ResetPasswordData): Promise<void>;
   changePassword(userId: string, data: ChangePasswordData): Promise<SafeUserData>;
-  changeEmail(userId: string, email: string): Promise<SafeUserData>;
   changeUsername(userId: string, username: string): Promise<SafeUserData>;
-  activateUser(id: string): Promise<SafeUserData>;
-  deactivateUser(id: string): Promise<SafeUserData>;
   logoutUser(refreshToken: string): Promise<void>;
   logoutAllDevices(userId: string): Promise<void>;
 }
@@ -260,10 +257,6 @@ class AuthService implements IAuthService {
     });
   }
 
-  async changeEmail(userId: string, email: string): Promise<SafeUserData> {
-    throw new ApiError('Method not implemented.');
-  }
-
   async changeUsername(userId: string, username: string): Promise<SafeUserData> {
     throw new ApiError('Method not implemented.');
   }
@@ -322,14 +315,6 @@ class AuthService implements IAuthService {
 
   async logoutAllDevices(userId: string): Promise<void> {
     await sessionService.deleteAllSessions(userId);
-  }
-
-  async deactivateUser(id: string): Promise<SafeUserData> {
-    return userRepository.deactivateUser(id);
-  }
-
-  async activateUser(id: string): Promise<SafeUserData> {
-    return userRepository.activateUser(id);
   }
 }
 

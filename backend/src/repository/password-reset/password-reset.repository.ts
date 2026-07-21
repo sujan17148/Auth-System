@@ -1,19 +1,6 @@
 import type { PasswordResetToken } from '../../generated/prisma/client.js';
 import { prisma } from '../../lib/prisma.js';
-
-export interface CreateOtpData {
-  otpHash: string;
-  userId: string;
-  expiresAt: Date;
-}
-
-export interface IPasswordResetRepository {
-  upsertOtp(data: CreateOtpData): Promise<PasswordResetToken>;
-
-  getOtpByUserId(userId: string): Promise<PasswordResetToken | null>;
-
-  deleteOtp(userId: string): Promise<void>;
-}
+import type { CreateOtpData, IPasswordResetRepository } from './repository.types.js';
 
 class PasswordResetRepository implements IPasswordResetRepository {
   async upsertOtp(data: CreateOtpData): Promise<PasswordResetToken> {

@@ -4,10 +4,10 @@ import { OAuthProvider } from '../../generated/prisma/enums.js';
 import { prisma } from '../../lib/prisma.js';
 import { BadRequestError } from '../../utility/apiError.js';
 import { googleClient } from '../controllers/oauth.controller.js';
-import { oAuthRepository } from '../repository/oauth-account.repository.js';
-import { userRepository } from '../repository/user.repository.js';
 import type { SafeUserData } from '../types/auth.types.js';
 import { tokenService } from './token.service.js';
+import { userRepository } from '../../repository/users/user.repository.js';
+import { oAuthRepository } from '../../repository/oauth-account/oauth-account.repository.js';
 
 interface ResolveOAuthUserInput {
   provider: OAuthProvider;

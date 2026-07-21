@@ -9,6 +9,10 @@ import { config } from './src/config/config.js';
 import authRoutes from './src/auth/routes/auth.routes.js';
 import oauthRoutes from './src/auth/routes/oauth.routes.js';
 
+import adminRoutes from './src/admin/index.route.js';
+import { authorize, verifyJWT } from './src/middlewares/auth.middlewares.js';
+import { Role } from './src/generated/prisma/enums.js';
+
 export const app = express();
 
 app.use(
@@ -39,5 +43,7 @@ app.get('/health', (_, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/oauth', oauthRoutes);
+
+app.use('/api/admin', verifyJWT, authorize(Role.ADMIN), adminRoutes);
 
 app.use(errorHandler);
