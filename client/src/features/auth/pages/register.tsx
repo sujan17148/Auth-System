@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 import { extractError } from '@/utility/extractError';
 import { queryClient } from '@/services/queryClient';
 import { APP_QUERY_KEYS } from '@/constants/queryKeys';
-import LoginWithGoogleButton from '@/components/ui/login-with-google-button';
+import { LoginWithGithubButton, LoginWithGoogleButton } from '@/components/ui/oauth-buttons';
 
 const defaultRegisterFormData: RegisterUserPayload = {
   firstName: '',
@@ -155,13 +155,16 @@ export default function Register() {
           </Button>
         </form>
 
-        <div className="mt-6 flex items-center gap-3">
-          <div className="h-px flex-1 bg-border" />
-          <span className="text-xs text-muted-foreground">OR</span>
-          <div className="h-px flex-1 bg-border" />
-        </div>
+        <div className="mt-6 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted-foreground">OR</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
 
-        <LoginWithGoogleButton />
+          <LoginWithGoogleButton />
+          <LoginWithGithubButton />
+        </div>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Already have an account?{' '}

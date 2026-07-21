@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { config } from '../../config/config.js';
 import { OAuthProvider } from '../../generated/prisma/enums.js';
 import { prisma } from '../../lib/prisma.js';
@@ -15,8 +16,25 @@ interface ResolveOAuthUserInput {
   firstName: string;
 }
 
+interface GithubAccessToken {
+  access_token: string;
+}
+
+interface GithubUser {
+  id: number;
+  login: string;
+  name: string | null;
+}
+
+interface GithubEmails {
+  email: string;
+  primary: boolean;
+  verified: boolean;
+}
+
 export interface IOAuthService {
   loginWithGoogle(code: string): Promise<string>;
+  loginWithGithub(code: string): Promise<string>;
 }
 
 const MAX_USERNAME_ATTEMPTS = 5;
@@ -42,6 +60,51 @@ class OAuthService implements IOAuthService {
       providerAccountId: payload.sub,
       email: payload.email,
       firstName: payload.given_name ?? 'user',
+    });
+
+    return tokenService.generateRefreshToken(user);
+  }
+
+  async loginWithGithub(code: string): Promise<string> {
+    const { data } = await axios.post<GithubAccessToken>(
+      `https://github.com/login/oauth/access_token`,
+      {
+        client_id: config.githubClientId,
+        client_secret: config.githubClientSecret,
+        code,
+        redirect_uri: config.githubRedirectUri,
+      },
+      {
+        headers: {
+          Accept: 'application/json',
+        },
+      },
+    );
+
+    const getUserPromise = axios.get<GithubUser>('https://api.github.com/user', {
+      headers: { Authorization: `Bearer ${data.access_token}` },
+    });
+
+    const getUserEmailsPromise = axios.get<GithubEmails[]>('https://api.github.com/user/emails', {
+      headers: { Authorization: `Bearer ${data.access_token}` },
+    });
+
+    const [githubUser, emails] = await Promise.all([getUserPromise, getUserEmailsPromise]);
+
+    const primaryEmail = emails.data.find((email) => email.primary && email.verified);
+    if (!primaryEmail) {
+      throw new BadRequestError('No verified primary email found.');
+    }
+
+    const firstName = githubUser.data.name
+      ? githubUser.data.name.trim().split(/\s+/)[0]!
+      : githubUser.data.login;
+
+    const user = await this.resolveOrCreateOAuthUser({
+      provider: OAuthProvider.GITHUB,
+      providerAccountId: String(githubUser.data.id),
+      email: primaryEmail.email,
+      firstName,
     });
 
     return tokenService.generateRefreshToken(user);

@@ -25,5 +25,12 @@ export const config = {
   googleClientSecret: requireEnv('GOOGLE_CLIENT_SECRET'),
   googleRedirectUri: requireEnv('GOOGLE_REDIRECT_URI'),
 
+  githubClientId: requireEnv('GITHUB_CLIENT_ID'),
+  githubClientSecret: requireEnv('GITHUB_CLIENT_SECRET'),
+  githubRedirectUri: requireEnv('GITHUB_REDIRECT_URI'),
+
+  oauthStateSecret:requireEnv('OAUTH_STATE_SECRET'),
+  oauthStateExpiry:requireEnv('OAUTH_STATE_EXPIRY'),
+
   clientUrl: requireEnv('CLIENT_URL'),
 } as const;
