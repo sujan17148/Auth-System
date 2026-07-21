@@ -2,10 +2,12 @@ import { config } from '../../config/config.js';
 import { UnauthorizedError } from '../../utility/apiError.js';
 import type { SafeUserData, TokenPayload } from '../types/auth.types.js';
 import jwt, { type SignOptions } from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 
 export interface TokenPair {
   accessToken: string;
   refreshToken: string;
+  refreshTokenExpiresAt: Date;
 }
 
 export interface ITokenService {
@@ -14,9 +16,12 @@ export interface ITokenService {
   generateTokenPair(user: SafeUserData): TokenPair;
   verifyAccessToken(accessToken: string): TokenPayload;
   verifyRefreshToken(refreshToken: string): TokenPayload;
+  hashRefreshToken(refreshToken: string): Promise<string>;
+  verifyRefreshTokenHash(refreshToken: string, refreshTokenHash: string): Promise<boolean>;
 }
 
 class TokenService implements ITokenService {
+  private readonly SALT_ROUNDS = 10;
   private readonly accessTokenSecret = config.accessTokenKey;
   private readonly accessTokenExpiry = config.accessTokenExpiry;
   private readonly refreshTokenSecret = config.refreshTokenKey;
@@ -55,7 +60,8 @@ class TokenService implements ITokenService {
   generateTokenPair(user: SafeUserData): TokenPair {
     const refreshToken = this.generateRefreshToken(user);
     const accessToken = this.generateAccessToken(user);
-    return { accessToken, refreshToken };
+    const refreshTokenExpiresAt = new Date(Date.now() + this.refreshTokenExpiry);
+    return { accessToken, refreshToken,  refreshTokenExpiresAt };
   }
 
   verifyAccessToken(accessToken: string): TokenPayload {
@@ -78,6 +84,14 @@ class TokenService implements ITokenService {
       }
       throw new UnauthorizedError('Invalid or expired token');
     }
+  }
+
+  async hashRefreshToken(refreshToken: string): Promise<string> {
+    return bcrypt.hash(refreshToken, this.SALT_ROUNDS);
+  }
+
+  async verifyRefreshTokenHash(refreshToken: string, refreshTokenHash: string): Promise<boolean> {
+    return bcrypt.compare(refreshToken, refreshTokenHash);
   }
 }
 

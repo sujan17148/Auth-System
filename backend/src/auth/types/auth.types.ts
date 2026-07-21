@@ -34,6 +34,12 @@ export type CreateUserRepositoryData = Omit<CreateUserData, 'password'> & {
 };
 
 export type LoginData = z.infer<typeof LoginSchema>;
+
+export interface LoginServiceData extends LoginData {
+  ipAddress: string;
+  userAgent: string;
+}
+
 export type ChangePasswordData = z.infer<typeof ChangePasswordSchema>;
 export type RequestPasswordResetData = z.infer<typeof RequestPasswordResetSchema>;
 export type ResetPasswordData = z.infer<typeof ResetPasswordSchema>;

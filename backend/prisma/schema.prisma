@@ -30,6 +30,7 @@ model User {
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
   oauthAccounts          OAuthAccount[]
+  sessions               Session[]
   emailVerificationToken EmailVerificationToken?
   passwordResetToken     PasswordResetToken?
 }
@@ -77,4 +78,20 @@ model OAuthAccount {
 
   @@unique([provider, providerAccountId])
   @@unique([userId, provider])
+}
+
+model Session {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  userAgent String
+  ipAddress String
+
+  refreshTokenHash String @unique
+
+  lastActivity DateTime @default(now())
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
 }

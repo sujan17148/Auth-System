@@ -14,7 +14,7 @@ import type {
 import { sendApiResponse, type ApiResponseType } from '../../utility/apiResponse.js';
 import { authService } from '../services/auth.service.js';
 import { config } from '../../config/config.js';
-import { ApiError, UnauthorizedError } from '../../utility/apiError.js';
+import { UnauthorizedError } from '../../utility/apiError.js';
 
 export const REFRESH_TOKEN_COOKIE = 'refreshToken';
 
@@ -35,7 +35,7 @@ export interface IAuthController {
 
   logout(req: TypedRequest, res: Response): Promise<Response<ApiResponseType<null>>>;
 
-  logoutAllDevices(req: TypedRequest, res: Response): Promise<Response<ApiResponseType<null>>>;
+  logoutAllDevices(req: AuthRequest, res: Response): Promise<Response<ApiResponseType<null>>>;
 
   requestEmailVerification(
     req: TypedRequest<RequestEmailVerificationData>,
@@ -68,8 +68,13 @@ class AuthController implements IAuthController {
     req: TypedRequest<LoginData>,
     res: Response,
   ): Promise<Response<ApiResponseType<LoginResponse>>> {
-    const { accessToken, refreshToken } = await authService.login(req.validated.body);
+    const loginPayload = {
+      ...req.validated.body,
+      ipAddress: req.ip ?? 'Unknown',
+      userAgent: req.get('user-agent') ?? 'Unknown',
+    };
 
+    const { accessToken, refreshToken } = await authService.login(loginPayload);
     res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, {
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
@@ -110,12 +115,22 @@ class AuthController implements IAuthController {
 
   async logout(req: TypedRequest, res: Response): Promise<Response<ApiResponseType<null>>> {
     const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE];
-    if (!refreshToken) throw new UnauthorizedError();
-    res.clearCookie(REFRESH_TOKEN_COOKIE, {
-      httpOnly: true,
-      secure: config.isProduction, //HTTPS only in production
-      sameSite: config.isProduction ? 'none' : 'strict', //CSRF protection
-    });
+
+    try {
+      if (refreshToken) {
+        await authService.logoutUser(refreshToken);
+      }
+    } catch (error) {
+      if (!(error instanceof UnauthorizedError)) {
+        throw error;
+      }
+    } finally {
+      res.clearCookie(REFRESH_TOKEN_COOKIE, {
+        httpOnly: true,
+        secure: config.isProduction,
+        sameSite: config.isProduction ? 'none' : 'strict',
+      });
+    }
     return sendApiResponse({
       res,
       statusCode: 200,
@@ -129,6 +144,7 @@ class AuthController implements IAuthController {
     res: Response,
   ): Promise<Response<ApiResponseType<LoginResponse>>> {
     const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE];
+
     if (!refreshToken) throw new UnauthorizedError();
 
     const accessToken = await authService.rotateToken(refreshToken);
@@ -182,10 +198,22 @@ class AuthController implements IAuthController {
   }
 
   async logoutAllDevices(
-    req: TypedRequest,
+    req: AuthRequest,
     res: Response,
   ): Promise<Response<ApiResponseType<null>>> {
-    throw new ApiError('Method not implemented');
+    const userId = req.user.id;
+    await authService.logoutAllDevices(userId);
+    res.clearCookie(REFRESH_TOKEN_COOKIE, {
+      httpOnly: true,
+      secure: config.isProduction, //HTTPS only in production
+      sameSite: config.isProduction ? 'none' : 'strict', //CSRF protection
+    });
+    return sendApiResponse({
+      res,
+      statusCode: 200,
+      message: 'Logged out successfully',
+      data: null,
+    });
   }
   async verifyEmail(
     req: TypedRequest<VerifyEmailData>,

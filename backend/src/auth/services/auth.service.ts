@@ -3,6 +3,7 @@ import type {
   ChangePasswordData,
   CreateUserData,
   LoginData,
+  LoginServiceData,
   LoginServiceResponse,
   RequestEmailVerificationData,
   RequestPasswordResetData,
@@ -22,6 +23,8 @@ import {
 } from '../../utility/apiError.js';
 import { mailService } from '../../mail/mail.service.js';
 import { tokenService, type TokenPair } from './token.service.js';
+import { sessionService } from './session.service.js';
+import { prisma } from '../../lib/prisma.js';
 
 export interface IAuthService {
   getUserById(id: string): Promise<SafeUserData | null>;
@@ -37,6 +40,8 @@ export interface IAuthService {
   changeUsername(userId: string, username: string): Promise<SafeUserData>;
   activateUser(id: string): Promise<SafeUserData>;
   deactivateUser(id: string): Promise<SafeUserData>;
+  logoutUser(refreshToken: string): Promise<void>;
+  logoutAllDevices(userId: string): Promise<void>;
 }
 
 class AuthService implements IAuthService {
@@ -72,7 +77,7 @@ class AuthService implements IAuthService {
     return newUser;
   }
 
-  async login(data: LoginData): Promise<TokenPair> {
+  async login(data: LoginServiceData): Promise<TokenPair> {
     const user = await userRepository.getUserByIdentifier(data.identifier);
 
     if (!user) {
@@ -96,19 +101,33 @@ class AuthService implements IAuthService {
       throw new ForbiddenError('Your account has been deactivated.');
     }
 
-    return tokenService.generateTokenPair(user);
+    const tokenPair = tokenService.generateTokenPair(user);
+
+    await sessionService.createSession({
+      userId: user.id,
+      refreshToken: tokenPair.refreshToken,
+      expiresAt: tokenPair.refreshTokenExpiresAt,
+      userAgent: data.userAgent,
+      ipAddress: data.ipAddress,
+    });
+
+    return tokenPair;
   }
 
   async rotateToken(refreshToken: string): Promise<string> {
-    const decoded = tokenService.verifyRefreshToken(refreshToken);
-    const user = await this.getUserById(decoded.id);
+    const session = await sessionService.validateRefreshSession(refreshToken);
+
+    const user = await this.getUserById(session.userId);
+
     if (!user) throw new UnauthorizedError('Invalid or expired token');
 
     if (!user.isActive) {
       throw new ForbiddenError('Account has been deactivated.');
     }
 
-    return tokenService.generateAccessToken(user);
+    const accessToken = tokenService.generateAccessToken(user);
+    await sessionService.updateLastActivity(session.id);
+    return accessToken;
   }
 
   private generateOtp(): string {
@@ -156,13 +175,11 @@ class AuthService implements IAuthService {
 
     await emailVerificationRepository.upsertOtp({ userId: user.id, otpHash, expiresAt });
 
-    console.log(otp);
-
-    // void mailService.sendVerificationEmail({ email: user.email, firstName: user.firstName, otp });
+    void mailService.sendVerificationEmail({ email: user.email, firstName: user.firstName, otp });
   }
 
   async requestPasswordReset(data: RequestPasswordResetData): Promise<void> {
-    const user = await userRepository.getUserByEmail(data.email);
+    const user = await userRepository.getUserByIdentifier(data.email);
 
     if (!user) {
       throw new NotFoundError('User with this email does not exist');
@@ -170,6 +187,12 @@ class AuthService implements IAuthService {
 
     if (!user.isActive) {
       throw new ForbiddenError('Your account has been deactivated.');
+    }
+
+    if (!user.passwordHash) {
+      throw new UnauthorizedError(
+        'This account uses social login. Please sign in with your provider.',
+      );
     }
 
     if (!user.emailVerified) {
@@ -186,13 +209,11 @@ class AuthService implements IAuthService {
       expiresAt,
     });
 
-    console.log(otp);
-
-    // void mailService.sendPasswordResetEmail({
-    //   email: user.email,
-    //   firstName: user.firstName,
-    //   otp,
-    // });
+    void mailService.sendPasswordResetEmail({
+      email: user.email,
+      firstName: user.firstName,
+      otp,
+    });
   }
 
   async resetPassword(data: ResetPasswordData): Promise<void> {
@@ -220,9 +241,23 @@ class AuthService implements IAuthService {
 
     const passwordHash = await bcrypt.hash(data.newPassword, this.SALT_ROUNDS);
 
-    await userRepository.updatePassword(user.id, passwordHash);
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          passwordHash: passwordHash,
+        },
+        omit: { passwordHash: true },
+      });
 
-    void passwordResetRepository.deleteOtp(user.id);
+      await tx.session.deleteMany({
+        where: {
+          userId: user.id,
+        },
+      });
+
+      await tx.passwordResetToken.deleteMany({ where: { userId: user.id } });
+    });
   }
 
   async changeEmail(userId: string, email: string): Promise<SafeUserData> {
@@ -260,7 +295,33 @@ class AuthService implements IAuthService {
 
     const passwordHash = await bcrypt.hash(data.newPassword, this.SALT_ROUNDS);
 
-    return userRepository.updatePassword(user.id, passwordHash);
+    const updatedUser = await prisma.$transaction(async (tx) => {
+      const tempUser = await tx.user.update({
+        where: { id: user.id },
+        data: {
+          passwordHash: passwordHash,
+        },
+        omit: { passwordHash: true },
+      });
+
+      await tx.session.deleteMany({
+        where: {
+          userId: user.id,
+        },
+      });
+      return tempUser;
+    });
+
+    return updatedUser;
+  }
+
+  async logoutUser(refreshToken: string): Promise<void> {
+    const session = await sessionService.validateRefreshSession(refreshToken);
+    await sessionService.deleteSession(session.id);
+  }
+
+  async logoutAllDevices(userId: string): Promise<void> {
+    await sessionService.deleteAllSessions(userId);
   }
 
   async deactivateUser(id: string): Promise<SafeUserData> {
