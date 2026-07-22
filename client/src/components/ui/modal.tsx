@@ -5,6 +5,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 
 interface ModalProps {
   title: string;
@@ -25,12 +26,12 @@ export default function Modal({
 }: ModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className={className}>
-        <DialogHeader className="border-b border-b-border pb-1 sticky top-0">
+      <DialogContent className={cn('w-full py-0  sm:max-w-xl overflow-y-auto', className)}>
+        <DialogHeader className="border-b border-b-border pt-2 sticky top-0 bg-background">
           <DialogTitle>{title}</DialogTitle>
           {subtitle && <DialogDescription>{subtitle}</DialogDescription>}
         </DialogHeader>
-        <div>{children}</div>
+        <div className="pb-2">{children}</div>
       </DialogContent>
     </Dialog>
   );

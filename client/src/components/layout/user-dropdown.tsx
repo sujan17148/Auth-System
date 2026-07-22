@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuthContext } from '@/context/auth-context';
 
-import { Home, LayoutDashboard, LogOut, User } from 'lucide-react';
+import { Home, LayoutDashboard, LogOut, MonitorX, Settings, User } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
 interface MenuItem {
@@ -20,10 +20,10 @@ interface MenuItem {
 
 export default function UserDropDown() {
   const location = useLocation();
-  const { signOut, currentUser } = useAuthContext();
+  const { signOut, signOutAll, currentUser } = useAuthContext();
   if (!currentUser) return null;
 
-  const isAdmin = currentUser.role === 'Admin';
+  const isAdmin = currentUser.role === 'ADMIN';
   const isDashboard = location.pathname.startsWith('/app');
 
   const menuItems: MenuItem[] = [
@@ -32,18 +32,25 @@ export default function UserDropDown() {
       icon: isDashboard ? <Home className="size-4" /> : <LayoutDashboard className="size-4" />,
       to: isDashboard ? '/' : isAdmin ? '/app/admin' : '/app/',
     },
-    // {
-    //   label: 'Settings',
-    //   icon: <Settings className="size-4" />,
-    //   to: '/settings',
-    // },
+    {
+      label: 'Settings',
+      icon: <Settings className="size-4" />,
+      to: isAdmin ? '/app/admin/setting' : '/app/setting',
+    },
     {
       label: 'Logout',
-      icon: <LogOut className="size-4 mr-2" />,
+      icon: <LogOut className="size-4" />,
       variant: 'destructive',
       onSelect: signOut,
     },
+    {
+      label: 'Logout All Devices',
+      icon: <MonitorX className="size-4" />,
+      variant: 'destructive',
+      onSelect: signOutAll,
+    },
   ];
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

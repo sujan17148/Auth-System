@@ -7,6 +7,7 @@ export type AuthContextValue = {
   isLoading: boolean;
   currentUser: CurrentUser | undefined;
   signOut: () => void;
+  signOutAll: () => void;
 };
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);

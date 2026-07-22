@@ -3,7 +3,7 @@ import { publicApiClient } from '@/services/publicApiClient';
 import { mapApiResponse, type ApiResponse } from '@/types/api-mapper';
 import { z } from 'zod';
 
-export type CurrentUserRole = 'Admin' | 'User';
+export type CurrentUserRole = 'ADMIN' | 'USER';
 
 let accessToken: string | null = null;
 
@@ -23,7 +23,8 @@ export interface LoginResponse {
 export interface CurrentUser {
   id: string;
   firstName: string;
-  lastName: string;
+  lastName: string | null;
+  username: string;
   email: string;
   role: CurrentUserRole;
   isActive: boolean;
@@ -136,7 +137,9 @@ export const fetchCurrentUser = async (): Promise<CurrentUser> => {
 
 export const refreshAccessToken = async (): Promise<string> => {
   const { data } = await publicApiClient.post<ApiResponse<LoginResponse>>('auth/token/refresh');
-  return mapApiResponse(data).accessToken;
+  const accessToken = mapApiResponse(data).accessToken;
+  setAccessToken(accessToken);
+  return accessToken;
 };
 
 export const registerUser = async (payload: RegisterUserPayload): Promise<CurrentUser> => {
@@ -165,5 +168,10 @@ export const resetPassword = async (payload: ResetPasswordPayload): Promise<void
 
 export const logoutUser = async (): Promise<void> => {
   await publicApiClient.post('auth/logout');
+  removeAccessToken();
+};
+
+export const logoutAllDevices = async (): Promise<void> => {
+  await apiClient.post('auth/logout-all');
   removeAccessToken();
 };

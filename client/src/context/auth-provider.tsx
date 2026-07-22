@@ -2,7 +2,12 @@ import { useCallback, useMemo, type PropsWithChildren } from 'react';
 
 import { queryClient } from '../services/queryClient';
 import { AuthContext, type AuthContextValue } from '@/context/auth-context';
-import { fetchCurrentUser, getAccessToken, logoutUser } from '@/features/auth/api/auth';
+import {
+  fetchCurrentUser,
+  getAccessToken,
+  logoutAllDevices,
+  logoutUser,
+} from '@/features/auth/api/auth';
 import { useQuery } from '@tanstack/react-query';
 import { APP_QUERY_KEYS } from '@/constants/queryKeys';
 
@@ -27,15 +32,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     queryClient.removeQueries({ queryKey: APP_QUERY_KEYS.auth.me });
   }, []);
 
+  const signOutAll = useCallback(async () => {
+    await logoutAllDevices();
+    queryClient.setQueryData(APP_QUERY_KEYS.auth.me, null);
+    queryClient.removeQueries({ queryKey: APP_QUERY_KEYS.auth.me });
+  }, []);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       isAuthenticated: Boolean(currentUser),
-      isAdmin: currentUser?.role === 'Admin',
+      isAdmin: currentUser?.role === 'ADMIN',
       isLoading,
       currentUser,
       signOut,
+      signOutAll,
     }),
-    [currentUser, isLoading, signOut],
+    [currentUser, isLoading, signOut, signOutAll],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

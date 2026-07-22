@@ -6,6 +6,7 @@ import HomePage from '@/features/auth/pages/home';
 import Login from '@/features/auth/pages/login';
 import Register from '@/features/auth/pages/register';
 import ResetPassword from '@/features/auth/pages/reset-password';
+import SettingsPage from '@/features/settings';
 import UserDashboardPage from '@/features/user';
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
 
@@ -20,12 +21,14 @@ function App() {
     <Routes>
       <Route path="/" element={<PublicLayout />}>
         <Route path="app">
-          <Route element={<ProtectedRoute />}>
-            <Route index element={<UserDashboardPage />} />
-          </Route>
-
           <Route path="admin" element={<ProtectedRoute requireAdmin />}>
             <Route index element={<AdminDashboardPage />} />
+            <Route path="setting" element={<SettingsPage />} />
+          </Route>
+
+          <Route element={<ProtectedRoute />}>
+            <Route index element={<UserDashboardPage />} />
+            <Route path="setting" element={<SettingsPage />} />
           </Route>
         </Route>
 
