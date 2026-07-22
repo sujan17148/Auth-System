@@ -86,8 +86,8 @@ model Session {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  userAgent String
-  ipAddress String
+  userAgent String?
+  ipAddress String?
 
   refreshTokenHash String @unique
 

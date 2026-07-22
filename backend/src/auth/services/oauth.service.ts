@@ -2,18 +2,27 @@ import axios from 'axios';
 import { config } from '../../config/config.js';
 import { OAuthProvider } from '../../generated/prisma/enums.js';
 import { prisma } from '../../lib/prisma.js';
-import { BadRequestError } from '../../utility/apiError.js';
+import { BadRequestError, ForbiddenError } from '../../utility/apiError.js';
 import { googleClient } from '../controllers/oauth.controller.js';
 import type { SafeUserData } from '../types/auth.types.js';
-import { tokenService } from './token.service.js';
+import { tokenService, type TokenPair } from './token.service.js';
 import { userRepository } from '../../repository/users/user.repository.js';
 import { oAuthRepository } from '../../repository/oauth-account/oauth-account.repository.js';
+import { sessionService } from './session.service.js';
 
 interface ResolveOAuthUserInput {
   provider: OAuthProvider;
   providerAccountId: string;
   email: string;
   firstName: string;
+  userAgent: string;
+  ipAddress: string;
+}
+
+interface OAuthLoginInput {
+  code: string;
+  ipAddress: string;
+  userAgent: string;
 }
 
 interface GithubAccessToken {
@@ -33,14 +42,15 @@ interface GithubEmails {
 }
 
 export interface IOAuthService {
-  loginWithGoogle(code: string): Promise<string>;
-  loginWithGithub(code: string): Promise<string>;
+  loginWithGoogle(data: OAuthLoginInput): Promise<string>;
+  loginWithGithub(data: OAuthLoginInput): Promise<string>;
 }
 
 const MAX_USERNAME_ATTEMPTS = 5;
 
 class OAuthService implements IOAuthService {
-  async loginWithGoogle(code: string): Promise<string> {
+  async loginWithGoogle(data: OAuthLoginInput): Promise<string> {
+    const { ipAddress, code, userAgent } = data;
     const { tokens } = await googleClient.getToken(code);
     if (!tokens.id_token) throw new BadRequestError('Google did not return an id_token');
 
@@ -55,17 +65,19 @@ class OAuthService implements IOAuthService {
       throw new BadRequestError('Invalid Google token payload');
     }
 
-    const user = await this.resolveOrCreateOAuthUser({
+    const { refreshToken } = await this.completeOAuthLogin({
       provider: OAuthProvider.GOOGLE,
       providerAccountId: payload.sub,
       email: payload.email,
       firstName: payload.given_name ?? 'user',
+      ipAddress,
+      userAgent,
     });
-
-    return tokenService.generateRefreshToken(user);
+    return refreshToken;
   }
 
-  async loginWithGithub(code: string): Promise<string> {
+  async loginWithGithub(payload: OAuthLoginInput): Promise<string> {
+    const { ipAddress, code, userAgent } = payload;
     const { data } = await axios.post<GithubAccessToken>(
       `https://github.com/login/oauth/access_token`,
       {
@@ -100,14 +112,16 @@ class OAuthService implements IOAuthService {
       ? githubUser.data.name.trim().split(/\s+/)[0]!
       : githubUser.data.login;
 
-    const user = await this.resolveOrCreateOAuthUser({
+    const { refreshToken } = await this.completeOAuthLogin({
       provider: OAuthProvider.GITHUB,
       providerAccountId: String(githubUser.data.id),
       email: primaryEmail.email,
       firstName,
+      userAgent,
+      ipAddress,
     });
 
-    return tokenService.generateRefreshToken(user);
+    return refreshToken;
   }
 
   private async generateUniqueUsername(base: string): Promise<string> {
@@ -176,6 +190,26 @@ class OAuthService implements IOAuthService {
     });
 
     return newUser;
+  }
+
+  private async completeOAuthLogin(input: ResolveOAuthUserInput): Promise<TokenPair> {
+    const user = await this.resolveOrCreateOAuthUser(input);
+
+    if (!user.isActive) {
+      throw new ForbiddenError('Your account has been suspended.');
+    }
+
+    const tokenPair = tokenService.generateTokenPair(user);
+
+    await sessionService.createSession({
+      userId: user.id,
+      refreshToken: tokenPair.refreshToken,
+      expiresAt: tokenPair.refreshTokenExpiresAt,
+      userAgent: input.userAgent,
+      ipAddress: input.ipAddress,
+    });
+
+    return tokenPair;
   }
 }
 

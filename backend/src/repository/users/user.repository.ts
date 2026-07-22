@@ -1,6 +1,7 @@
 import type {
   CreateUserRepositoryData,
   SafeUserData,
+  updateProfileData,
   UserWithPasswordData,
 } from '../../auth/types/auth.types.js';
 import { prisma } from '../../lib/prisma.js';
@@ -103,6 +104,20 @@ class UserRepository implements IUserRepository {
       verifiedUsers,
       unverifiedUsers,
     };
+  }
+
+  async updateProfile(id: string, data: updateProfileData): Promise<SafeUserData> {
+    return await prisma.user.update({
+      where: { id },
+      data: {
+        ...(data.firstName && { firstName: data.firstName }),
+        ...(data.lastName && { lastName: data.lastName }),
+        ...(data.username && { username: data.username }),
+      },
+      omit: {
+        passwordHash: true,
+      },
+    });
   }
 
   async changeUserActiveStatus(id: string, isActive: boolean): Promise<SafeUserData> {

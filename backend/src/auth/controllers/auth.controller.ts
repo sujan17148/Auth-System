@@ -9,6 +9,7 @@ import type {
   RequestPasswordResetData,
   ResetPasswordData,
   SafeUserData,
+  updateProfileData,
   VerifyEmailData,
 } from '../types/auth.types.js';
 import { sendApiResponse, type ApiResponseType } from '../../utility/apiResponse.js';
@@ -61,6 +62,11 @@ export interface IAuthController {
     req: TypedAuthRequest<ChangePasswordData>,
     res: Response,
   ): Promise<Response<ApiResponseType<SafeUserData>>>;
+
+  updateProfile(
+    req: TypedAuthRequest<updateProfileData>,
+    res: Response,
+  ): Promise<Response<ApiResponseType<SafeUserData>>>;
 }
 
 class AuthController implements IAuthController {
@@ -70,8 +76,8 @@ class AuthController implements IAuthController {
   ): Promise<Response<ApiResponseType<LoginResponse>>> {
     const loginPayload = {
       ...req.validated.body,
-      ipAddress: req.ip ?? 'Unknown',
-      userAgent: req.get('user-agent') ?? 'Unknown',
+      ipAddress: req.ip ?? 'null',
+      userAgent: req.get('user-agent') ?? 'null',
     };
 
     const { accessToken, refreshToken } = await authService.login(loginPayload);
@@ -167,6 +173,20 @@ class AuthController implements IAuthController {
       res,
       statusCode: 200,
       message: 'Password changed  Successfully',
+      data: user,
+    });
+  }
+
+  async updateProfile(
+    req: TypedAuthRequest<updateProfileData>,
+    res: Response,
+  ): Promise<Response<ApiResponseType<SafeUserData>>> {
+    const userId = req.user.id;
+    const user = await authService.updateProfile(userId, req.validated.body);
+    return sendApiResponse({
+      res,
+      statusCode: 200,
+      message: 'Profile updated successfully.',
       data: user,
     });
   }

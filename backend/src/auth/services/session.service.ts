@@ -1,4 +1,5 @@
 import type { Session } from '../../generated/prisma/client.js';
+import type { SafeSession } from '../../repository/session/repository.types.js';
 import { sessionRepository } from '../../repository/session/session.repository.js';
 import { UnauthorizedError } from '../../utility/apiError.js';
 import { tokenService } from './token.service.js';
@@ -22,7 +23,7 @@ export interface ISessionService {
 
   deleteAllSessions(userId: string): Promise<void>;
 
-  getAllSessionsByUserId(userId: string): Promise<Session[]>;
+  getAllSessionsByUserId(userId: string): Promise<SafeSession[]>;
 }
 
 class SessionService implements ISessionService {
@@ -42,8 +43,7 @@ class SessionService implements ISessionService {
   async validateRefreshSession(refreshToken: string): Promise<Session> {
     const decoded = tokenService.verifyRefreshToken(refreshToken);
 
-    const sessions = await sessionRepository.getSessionsByUserId(decoded.id);
-
+    const sessions = await sessionRepository.getUserSessionsForAuth(decoded.id);
     for (const session of sessions) {
       const isMatch = await tokenService.verifyRefreshTokenHash(
         refreshToken,
@@ -67,8 +67,8 @@ class SessionService implements ISessionService {
     await sessionRepository.updateLastActivity(sessionId);
   }
 
-  async getAllSessionsByUserId(userId: string): Promise<Session[]> {
-    return sessionRepository.getSessionsByUserId(userId);
+  async getAllSessionsByUserId(userId: string): Promise<SafeSession[]> {
+    return sessionRepository.getUserSessions(userId);
   }
 
   async deleteAllSessions(userId: string): Promise<void> {

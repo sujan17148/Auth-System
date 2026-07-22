@@ -1,20 +1,12 @@
-import type { SafeUserData } from '../../auth/types/auth.types.js';
-import type { Session, User } from '../../generated/prisma/client.js';
+import { z } from 'zod';
 
-export interface UserSummary {
-  totalUsers: number;
-  activeUsers: number;
-  inactiveUsers: number;
-  verifiedUsers: number;
-  unverifiedUsers: number;
-}
+export const UserIdParamsSchema = z.object({
+  id: z.uuid('Invalid user id.'),
+});
 
-export interface AdminUserService {
-  getAllUsers(): Promise<SafeUserData[]>;
+export const ChangeUserStatusSchema = z.object({
+  isActive: z.boolean(),
+});
 
-  getUsersSummary(): Promise<UserSummary>;
-
-  getUserSessions(userId: string): Promise<Session[]>;
-
-  changeUserActiveStatus(userId: string, isActive: boolean): Promise<User>;
-}
+export type UserIdParams = z.infer<typeof UserIdParamsSchema>;
+export type ChangeUserStatusPayload = z.infer<typeof ChangeUserStatusSchema>;

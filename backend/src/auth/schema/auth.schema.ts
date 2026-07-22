@@ -48,3 +48,17 @@ export const VerifyEmailSchema = z.object({
     .trim()
     .regex(/^\d{4}$/, 'OTP must be exactly 4 digits'),
 });
+
+export const UpdateProfileSchema = z
+  .object({
+    firstName: z.string('').trim().min(1).max(50).optional(),
+    lastName: z.string().trim().min(1).max(50).optional(),
+    username: z.string('').trim().min(1).max(50).optional(),
+  })
+  .refine(
+    (data) =>
+      data.firstName !== undefined || data.lastName !== undefined || data.username !== undefined,
+    {
+      message: 'At least one field must be provided.',
+    },
+  );

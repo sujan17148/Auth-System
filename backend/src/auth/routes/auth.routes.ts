@@ -7,6 +7,7 @@ import {
   RequestEmailVerificationSchema,
   RequestPasswordResetSchema,
   ResetPasswordSchema,
+  UpdateProfileSchema,
   VerifyEmailSchema,
 } from '../schema/auth.schema.js';
 import { asyncHandler } from '../../utility/asyncHandler.js';
@@ -37,6 +38,8 @@ router.post(
 
 router.post('/logout', asyncHandler(authController.logout));
 
+router.post('/logout-all', verifyJWT, asyncHandler(authController.logoutAllDevices));
+
 router.post(
   '/request-verify-email',
   validateSchema({ body: RequestEmailVerificationSchema }),
@@ -59,6 +62,14 @@ router.post(
   '/reset-password',
   validateSchema({ body: ResetPasswordSchema }),
   asyncHandler(authController.resetPassword),
+);
+
+router.patch(
+  '/me',
+  validateSchema({ body: UpdateProfileSchema }),
+  verifyJWT,
+  requireVerifiedEmail,
+  asyncHandler(authController.updateProfile),
 );
 
 export default router;

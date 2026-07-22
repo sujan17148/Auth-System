@@ -60,8 +60,8 @@ class TokenService implements ITokenService {
   generateTokenPair(user: SafeUserData): TokenPair {
     const refreshToken = this.generateRefreshToken(user);
     const accessToken = this.generateAccessToken(user);
-    const refreshTokenExpiresAt = new Date(Date.now() + this.refreshTokenExpiry);
-    return { accessToken, refreshToken,  refreshTokenExpiresAt };
+    const refreshTokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    return { accessToken, refreshToken, refreshTokenExpiresAt };
   }
 
   verifyAccessToken(accessToken: string): TokenPayload {

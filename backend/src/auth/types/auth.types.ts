@@ -8,6 +8,7 @@ import type {
   RequestEmailVerificationSchema,
   RequestPasswordResetSchema,
   ResetPasswordSchema,
+  UpdateProfileSchema,
   VerifyEmailSchema,
 } from '../schema/auth.schema.js';
 
@@ -40,6 +41,7 @@ export interface LoginServiceData extends LoginData {
   userAgent: string;
 }
 
+export type updateProfileData = z.infer<typeof UpdateProfileSchema>;
 export type ChangePasswordData = z.infer<typeof ChangePasswordSchema>;
 export type RequestPasswordResetData = z.infer<typeof RequestPasswordResetSchema>;
 export type ResetPasswordData = z.infer<typeof ResetPasswordSchema>;

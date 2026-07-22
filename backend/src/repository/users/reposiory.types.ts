@@ -1,6 +1,7 @@
 import type {
   CreateUserRepositoryData,
   SafeUserData,
+  updateProfileData,
   UserWithPasswordData,
 } from '../../auth/types/auth.types.js';
 
@@ -23,6 +24,7 @@ export interface IUserRepository {
   getUsersSummary(): Promise<UsersSummary>;
 
   createUser(data: CreateUserRepositoryData): Promise<SafeUserData>;
+  updateProfile(id: string, data: updateProfileData): Promise<SafeUserData>;
   updatePassword(id: string, passwordHash: string): Promise<SafeUserData>;
   verifyEmail(id: string): Promise<SafeUserData>;
   changeUsername(id: string, username: string): Promise<SafeUserData>;

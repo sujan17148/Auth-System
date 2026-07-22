@@ -9,6 +9,7 @@ import type {
   RequestPasswordResetData,
   ResetPasswordData,
   SafeUserData,
+  updateProfileData,
   VerifyEmailData,
 } from '../types/auth.types.js';
 import {
@@ -255,6 +256,18 @@ class AuthService implements IAuthService {
 
       await tx.passwordResetToken.deleteMany({ where: { userId: user.id } });
     });
+  }
+
+  async updateProfile(userId: string, data: updateProfileData): Promise<SafeUserData> {
+    if (data.username) {
+      const existingUser = await userRepository.getUserByUsername(data.username);
+
+      if (existingUser && existingUser.id !== userId) {
+        throw new ConflictError('Username already exists.');
+      }
+    }
+
+    return await userRepository.updateProfile(userId, data);
   }
 
   async changeUsername(userId: string, username: string): Promise<SafeUserData> {

@@ -41,7 +41,11 @@ class OAuthController implements IOAuthController {
         throw new BadRequestError('Missing OAuth code.');
       }
 
-      const refreshToken = await oAuthService.loginWithGoogle(code);
+      const refreshToken = await oAuthService.loginWithGoogle({
+        code,
+        ipAddress: req.ip ?? 'null',
+        userAgent: req.get('user-agent') ?? 'null',
+      });
 
       res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, {
         httpOnly: true,
@@ -84,7 +88,11 @@ class OAuthController implements IOAuthController {
       }
 
       verifyOAuthState(state);
-      const refreshToken = await oAuthService.loginWithGithub(code);
+      const refreshToken = await oAuthService.loginWithGithub({
+        code,
+        ipAddress: req.ip ?? 'null',
+        userAgent: req.get('user-agent') ?? 'null',
+      });
 
       res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, {
         httpOnly: true,
