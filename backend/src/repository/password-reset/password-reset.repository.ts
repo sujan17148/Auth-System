@@ -1,23 +1,23 @@
 import type { PasswordResetToken } from '../../generated/prisma/client.js';
 import { prisma } from '../../lib/prisma.js';
-import type { CreateOtpData, IPasswordResetRepository } from './repository.types.js';
+import type { CreateResetTokenData, IPasswordResetRepository } from './repository.types.js';
 
 class PasswordResetRepository implements IPasswordResetRepository {
-  async upsertOtp(data: CreateOtpData): Promise<PasswordResetToken> {
+  async upsertToken(data: CreateResetTokenData): Promise<PasswordResetToken> {
     return await prisma.passwordResetToken.upsert({
       where: { userId: data.userId },
-      create: { userId: data.userId, otpHash: data.otpHash, expiresAt: data.expiresAt },
-      update: { otpHash: data.otpHash, expiresAt: data.expiresAt },
+      create: { userId: data.userId, tokenHash: data.tokenHash, expiresAt: data.expiresAt },
+      update: { tokenHash: data.tokenHash, expiresAt: data.expiresAt },
     });
   }
 
-  async getOtpByUserId(userId: string): Promise<PasswordResetToken | null> {
-    return await prisma.passwordResetToken.findUnique({
-      where: { userId },
+  async getTokenByHash(tokenHash: string): Promise<PasswordResetToken | null> {
+    return await prisma.passwordResetToken.findFirst({
+      where: { tokenHash },
     });
   }
 
-  async deleteOtp(userId: string): Promise<void> {
+  async deleteToken(userId: string): Promise<void> {
     await prisma.passwordResetToken.deleteMany({
       where: { userId },
     });

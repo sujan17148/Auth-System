@@ -26,6 +26,8 @@ import { prisma } from '../../lib/prisma.js';
 import { userRepository } from '../../repository/users/user.repository.js';
 import { passwordResetRepository } from '../../repository/password-reset/password-reset.repository.js';
 import { emailVerificationRepository } from '../../repository/email-verification/email-verification.repository.js';
+import { verificationTokenService } from './verification.service.js';
+import { config } from '../../config/config.js';
 
 export interface IAuthService {
   getUserById(id: string): Promise<SafeUserData | null>;
@@ -44,7 +46,7 @@ export interface IAuthService {
 
 class AuthService implements IAuthService {
   private readonly SALT_ROUNDS = 10;
-  private readonly OTP_EXPIRY_MINUTES = 2;
+  private readonly OTP_EXPIRY_MINUTES = 5;
 
   async getUserById(id: string): Promise<SafeUserData | null> {
     const user = await userRepository.getUserById(id);
@@ -128,16 +130,6 @@ class AuthService implements IAuthService {
     return accessToken;
   }
 
-  private generateOtp(): string {
-    return Math.floor(Math.random() * 10000)
-      .toString()
-      .padStart(4, '0');
-  }
-
-  private async generateOtpHash(otp: string): Promise<string> {
-    return await bcrypt.hash(otp.toString(), this.SALT_ROUNDS);
-  }
-
   async verifyEmail(data: VerifyEmailData): Promise<SafeUserData> {
     const user = await userRepository.getUserByEmail(data.email);
     if (!user) throw new NotFoundError('user not found');
@@ -156,7 +148,9 @@ class AuthService implements IAuthService {
 
     void emailVerificationRepository.deleteOtp(user.id);
 
-    return userRepository.verifyEmail(user.id);
+    const tempUser = await userRepository.verifyEmail(user.id);
+    void mailService.sendWelcomeEmail({ email: user.email, firstName: user.firstName });
+    return tempUser;
   }
 
   async requestEmailVerification(data: RequestEmailVerificationData): Promise<void> {
@@ -167,8 +161,8 @@ class AuthService implements IAuthService {
       throw new ForbiddenError('Your account has been deactivated.');
     }
 
-    const otp = this.generateOtp();
-    const otpHash = await this.generateOtpHash(otp);
+    const otp = verificationTokenService.generateOTP();
+    const otpHash = verificationTokenService.hashToken(otp);
     const expiresAt = new Date(Date.now() + this.OTP_EXPIRY_MINUTES * 60 * 1000);
 
     await emailVerificationRepository.upsertOtp({ userId: user.id, otpHash, expiresAt });
@@ -197,44 +191,52 @@ class AuthService implements IAuthService {
       throw new ForbiddenError('Please verify your email first.');
     }
 
-    const otp = this.generateOtp();
-    const otpHash = await this.generateOtpHash(otp);
+    const token = verificationTokenService.generateSecureToken();
+    const tokenHash = verificationTokenService.hashToken(token);
     const expiresAt = new Date(Date.now() + this.OTP_EXPIRY_MINUTES * 60 * 1000);
 
-    await passwordResetRepository.upsertOtp({
+    await passwordResetRepository.upsertToken({
       userId: user.id,
-      otpHash,
+      tokenHash,
       expiresAt,
     });
+
+    const resetLink = `${config.clientUrl}/auth/reset-password?code=${token}`;
 
     void mailService.sendPasswordResetEmail({
       email: user.email,
       firstName: user.firstName,
-      otp,
+      resetLink,
     });
   }
 
   async resetPassword(data: ResetPasswordData): Promise<void> {
-    const user = await userRepository.getUserByEmail(data.email);
+    const incomingTokenHash = verificationTokenService.hashToken(data.code);
 
-    if (!user) {
-      throw new NotFoundError('User not found');
-    }
-
-    const passwordResetToken = await passwordResetRepository.getOtpByUserId(user.id);
+    const passwordResetToken = await passwordResetRepository.getTokenByHash(incomingTokenHash);
 
     if (!passwordResetToken) {
-      throw new UnauthorizedError('Password could not be reset');
+      throw new UnauthorizedError('This password reset link is invalid or has already been used.');
     }
 
     if (passwordResetToken.expiresAt <= new Date()) {
-      throw new UnauthorizedError('OTP has expired');
+      throw new UnauthorizedError(
+        'This password reset link has expired. Please request a new one.',
+      );
     }
 
-    const isMatch = await bcrypt.compare(data.otp, passwordResetToken.otpHash);
+    const user = await userRepository.getUserById(passwordResetToken.userId);
 
-    if (!isMatch) {
-      throw new UnauthorizedError('Invalid email or OTP');
+    if (!user) {
+      throw new NotFoundError('User not found.');
+    }
+
+    if (!user.isActive) {
+      throw new ForbiddenError('Your account has been deactivated. Please contact support.');
+    }
+
+    if (!user.emailVerified) {
+      throw new ForbiddenError('Please verify your email before resetting your password.');
     }
 
     const passwordHash = await bcrypt.hash(data.newPassword, this.SALT_ROUNDS);
@@ -243,18 +245,17 @@ class AuthService implements IAuthService {
       await tx.user.update({
         where: { id: user.id },
         data: {
-          passwordHash: passwordHash,
+          passwordHash,
         },
-        omit: { passwordHash: true },
       });
 
       await tx.session.deleteMany({
-        where: {
-          userId: user.id,
-        },
+        where: { userId: user.id },
       });
 
-      await tx.passwordResetToken.deleteMany({ where: { userId: user.id } });
+      await tx.passwordResetToken.deleteMany({
+        where: { userId: user.id },
+      });
     });
   }
 

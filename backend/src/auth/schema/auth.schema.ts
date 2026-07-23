@@ -29,11 +29,7 @@ export const RequestPasswordResetSchema = z.object({
 });
 
 export const ResetPasswordSchema = z.object({
-  email: z.email().trim(),
-  otp: z
-    .string()
-    .trim()
-    .regex(/^\d{4}$/, 'OTP must be exactly 4 digits'),
+  code: z.string().trim().min(1),
   newPassword: z.string().trim().min(6).max(50),
 });
 
@@ -51,14 +47,11 @@ export const VerifyEmailSchema = z.object({
 
 export const UpdateProfileSchema = z
   .object({
-    firstName: z.string('').trim().min(1).max(50).optional(),
+    firstName: z.string().trim().min(1).max(50).optional(),
     lastName: z.string().trim().min(1).max(50).optional(),
-    username: z.string('').trim().min(1).max(50).optional(),
+    username: z.string().trim().min(1).max(50).optional(),
   })
-  .refine(
-    (data) =>
-      data.firstName !== undefined || data.lastName !== undefined || data.username !== undefined,
-    {
-      message: 'At least one field must be provided.',
-    },
-  );
+  .partial()
+  .refine((data) => Object.values(data).some((value) => value !== undefined), {
+    message: 'At least one field must be provided.',
+  });

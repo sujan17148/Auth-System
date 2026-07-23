@@ -12,13 +12,13 @@ import {
 } from '../schema/auth.schema.js';
 import { asyncHandler } from '../../utility/asyncHandler.js';
 import { authController } from '../controllers/auth.controller.js';
-import { requireVerifiedEmail, verifyJWT } from '../../middlewares/auth.middlewares.js';
+import { verifyJWT } from '../../middlewares/auth.middlewares.js';
 
 const router = Router();
 
-router.post('/login', validateSchema({ body: LoginSchema }), asyncHandler(authController.login));
-
 router.get('/me', verifyJWT, asyncHandler(authController.me));
+
+router.post('/login', validateSchema({ body: LoginSchema }), asyncHandler(authController.login));
 
 router.post(
   '/register',
@@ -27,14 +27,6 @@ router.post(
 );
 
 router.post('/token/refresh', asyncHandler(authController.refresh));
-
-router.post(
-  '/change-password',
-  validateSchema({ body: ChangePasswordSchema }),
-  verifyJWT,
-  requireVerifiedEmail,
-  asyncHandler(authController.changePassword),
-);
 
 router.post('/logout', asyncHandler(authController.logout));
 
@@ -65,10 +57,16 @@ router.post(
 );
 
 router.patch(
+  '/change-password',
+  validateSchema({ body: ChangePasswordSchema }),
+  verifyJWT,
+  asyncHandler(authController.changePassword),
+);
+
+router.patch(
   '/me',
   validateSchema({ body: UpdateProfileSchema }),
   verifyJWT,
-  requireVerifiedEmail,
   asyncHandler(authController.updateProfile),
 );
 

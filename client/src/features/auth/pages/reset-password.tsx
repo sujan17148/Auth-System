@@ -1,33 +1,28 @@
 import { Eye, EyeOff, Loader, Sparkles } from 'lucide-react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useState } from 'react';
 
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 import { Button } from '@/components/ui/button';
 import TaskInput from '@/components/ui/task-input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-import {
-  resetPassword,
-  ResetPasswordSchema,
-  type ResetPasswordPayload,
-} from '@/features/auth/api/auth';
+import { resetPassword, ResetPasswordSchema, type ResetPasswordPayload } from '@/features/api/auth';
 import { toast } from 'sonner';
 import { extractError } from '@/utility/extractError';
+import { useForm } from 'react-hook-form';
 
 const defaultResetPasswordData: ResetPasswordPayload = {
-  email: '',
-  otp: '',
+  code: '',
   newPassword: '',
   confirmPassword: '',
 };
 
 export default function ResetPassword() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const emailState = location.state?.email ?? '';
+  const [searchParams] = useSearchParams();
+  const resetToken = searchParams.get('code') ?? '';
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
 
@@ -39,10 +34,11 @@ export default function ResetPassword() {
     formState: { errors, isSubmitting },
   } = useForm<ResetPasswordPayload>({
     resolver: zodResolver(ResetPasswordSchema),
-    defaultValues: { ...defaultResetPasswordData, email: emailState },
+    defaultValues: { ...defaultResetPasswordData, code: resetToken },
   });
 
   const submitResetPasswordForm = async (data: ResetPasswordPayload) => {
+    setError(null);
     try {
       await resetPassword(data);
       toast.success('Password reset successfull');
@@ -62,6 +58,9 @@ export default function ResetPassword() {
         </div>
 
         <h1 className="mb-1 text-center text-2xl font-bold">Reset your password</h1>
+        <p className="text-sm text-muted-foreground text-center mb-3">
+          Enter your new password to regain access to your account.
+        </p>
 
         {error && (
           <Alert variant="destructive" className="mb-4">
@@ -71,19 +70,6 @@ export default function ResetPassword() {
         )}
 
         <form className="space-y-4" onSubmit={handleSubmit(submitResetPasswordForm)}>
-          <div className="space-y-1 text-center">
-            <p className="text-sm text-muted-foreground">We've sent a verification code to</p>
-
-            <p className="font-medium text-sm">{emailState}</p>
-          </div>
-
-          <TaskInput
-            label="Verification Code"
-            placeholder="1234"
-            {...register('otp')}
-            error={errors.otp?.message}
-          />
-
           <div className="relative">
             <TaskInput
               label="New Password"

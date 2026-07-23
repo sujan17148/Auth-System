@@ -50,7 +50,7 @@ model EmailVerificationToken {
 model PasswordResetToken {
   id        String   @id @default(uuid())
   userId    String   @unique
-  otpHash   String
+  tokenHash String
   expiresAt DateTime
   createdAt DateTime @default(now())
 

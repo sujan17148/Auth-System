@@ -1,4 +1,4 @@
-export const passwordResetEmailTemplate = (firstName: string, otp: string): string => `
+export const passwordResetEmailTemplate = (firstName: string, resetLink: string): string => `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -27,30 +27,42 @@ export const passwordResetEmailTemplate = (firstName: string, otp: string): stri
 
 <p>
 We received a request to reset your password.
-Use the code below to continue.
+Click the button below to create a new password.
 </p>
 
-<div style="
-margin:35px auto;
-display:inline-block;
-padding:18px 36px;
-background:#f3f4f6;
-border:2px dashed #d1d5db;
-border-radius:10px;
-font-size:38px;
-font-weight:bold;
-letter-spacing:10px;
-">
-${otp}
+<div style="text-align:center;margin:40px 0;">
+<a
+  href="${resetLink}"
+  style="
+    display:inline-block;
+    background:#2563eb;
+    color:#ffffff;
+    text-decoration:none;
+    padding:14px 32px;
+    border-radius:8px;
+    font-weight:bold;
+    font-size:16px;
+  "
+>
+Reset Password
+</a>
 </div>
 
-<p style="color:#dc2626;font-weight:bold;">
-This code expires in 2 minutes.
+<p style="font-weight:bold;color:#dc2626;">
+This link expires in 5 minutes and can only be used once.
+</p>
+
+<p style="font-size:14px;color:#4b5563;">
+If the button doesn't work, copy and paste the following link into your browser:
+</p>
+
+<p style="word-break:break-all;font-size:13px;color:#2563eb;">
+${resetLink}
 </p>
 
 <p>
-If you didn't request a password reset, simply ignore this email.
-Your account remains secure.
+If you didn't request a password reset, you can safely ignore this email.
+Your password will remain unchanged.
 </p>
 
 </td>
