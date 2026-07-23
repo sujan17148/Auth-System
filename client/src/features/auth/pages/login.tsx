@@ -6,7 +6,7 @@ import TaskInput from '@/components/ui/task-input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { fetchCurrentUser, login, LoginSchema, type LoginPayload } from '@/features/auth/api/auth';
+import { fetchCurrentUser, login, LoginSchema, type LoginPayload } from '@/features/api/auth';
 import { extractError } from '@/utility/extractError';
 import { toast } from 'sonner';
 import { APP_QUERY_KEYS } from '@/constants/queryKeys';
@@ -40,7 +40,7 @@ export default function Login() {
       const currentUser = await fetchCurrentUser();
       queryClient.setQueryData(APP_QUERY_KEYS.auth.me, currentUser);
       reset();
-      const isAdmin = currentUser.role === 'Admin';
+      const isAdmin = currentUser.role === 'ADMIN';
       navigate(isAdmin ? '/app/admin' : '/app');
       toast.success('Login successfull');
       navigate('/');

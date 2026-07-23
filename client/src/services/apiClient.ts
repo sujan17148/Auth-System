@@ -1,5 +1,5 @@
 import { APP_QUERY_KEYS } from '@/constants/queryKeys';
-import { getAccessToken, refreshAccessToken, removeAccessToken } from '@/features/auth/api/auth';
+import { getAccessToken, refreshAccessToken, removeAccessToken } from '@/features/api/auth';
 import { config } from '@/lib/config';
 import { queryClient } from '@/services/queryClient';
 import axios, {

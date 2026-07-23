@@ -1,20 +1,20 @@
 import { Button } from '@/components/ui/button';
-import TaskInput from '@/components/ui/task-input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   requestVerifyEmail,
   verifyEmail,
   VerifyEmailSchema,
   type VerifyEmailPayload,
-} from '@/features/auth/api/auth';
+} from '@/features/api/auth';
 import { extractError } from '@/utility/extractError';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { Loader } from 'lucide-react';
 import { APP_QUERY_KEYS } from '@/constants/queryKeys';
 import { queryClient } from '@/services/queryClient';
+import FormOtp from '@/components/ui/form-otp';
 
 interface VerifyEmailFormProps {
   email: string;
@@ -25,9 +25,9 @@ export function VerifyEmailForm({ email, onClose }: VerifyEmailFormProps) {
   const [error, setError] = useState<string | null>(null);
 
   const {
-    register,
     handleSubmit,
     reset,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<VerifyEmailPayload>({
     resolver: zodResolver(VerifyEmailSchema),
@@ -76,11 +76,10 @@ export function VerifyEmailForm({ email, onClose }: VerifyEmailFormProps) {
           <p className="font-medium">{email}</p>
         </div>
 
-        <TaskInput
-          label="Verification Code"
-          placeholder="Enter the 4-digit code"
-          {...register('otp')}
-          error={errors.otp?.message}
+        <Controller
+          control={control}
+          name="otp"
+          render={({ field }) => <FormOtp field={field} length={4} error={errors.otp?.message} />}
         />
 
         <Button type="submit" className="w-full" disabled={isSubmitting}>

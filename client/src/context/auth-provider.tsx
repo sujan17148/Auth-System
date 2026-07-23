@@ -7,7 +7,7 @@ import {
   getAccessToken,
   logoutAllDevices,
   logoutUser,
-} from '@/features/auth/api/auth';
+} from '@/features/api/auth';
 import { useQuery } from '@tanstack/react-query';
 import { APP_QUERY_KEYS } from '@/constants/queryKeys';
 

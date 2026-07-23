@@ -13,7 +13,7 @@ import {
   ForgotPasswordSchema,
   requestPasswordReset,
   type ForgotPasswordPayload,
-} from '@/features/auth/api/auth';
+} from '@/features/api/auth';
 import { extractError } from '@/utility/extractError';
 import { toast } from 'sonner';
 

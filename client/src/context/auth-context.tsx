@@ -1,4 +1,4 @@
-import type { CurrentUser } from '@/features/auth/api/auth';
+import type { CurrentUser } from '@/features/api/auth';
 import { createContext, useContext } from 'react';
 
 export type AuthContextValue = {

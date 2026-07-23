@@ -2,7 +2,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import Modal from '@/components/ui/modal';
 import { useAuthContext } from '@/context/auth-context';
-import { requestVerifyEmail } from '@/features/auth/api/auth';
+import { requestVerifyEmail } from '@/features/api/auth';
 import { VerifyEmailForm } from '@/features/auth/components/verify-email-form';
 import { Sparkles } from 'lucide-react';
 import { useState } from 'react';
@@ -51,6 +51,7 @@ export default function UserDashboardPage() {
         subtitle="Enter the verification code sent to your email."
         isOpen={isVerifyModalOpen}
         onClose={() => setIsVerifyModalOpen(false)}
+        className="sm:max-w-lg overflow-x-hidden"
       >
         <VerifyEmailForm email={currentUser!.email} onClose={() => setIsVerifyModalOpen(false)} />
       </Modal>

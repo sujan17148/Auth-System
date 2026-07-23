@@ -90,13 +90,7 @@ export const ForgotPasswordSchema = z.object({
 
 export const ResetPasswordSchema = z
   .object({
-    email: z.string({ error: 'Email is required' }).email('Please enter a valid email'),
-
-    otp: z
-      .string({ error: 'Verification code is required' })
-      .trim()
-      .length(4, 'Verification code must be 4 digits'),
-
+    code: z.string('Code is required'),
     newPassword: z
       .string({ error: 'Password is required' })
       .min(8, 'Password must be at least 8 characters'),
@@ -121,7 +115,7 @@ export type VerifyEmailPayload = z.infer<typeof VerifyEmailSchema>;
 export type RequestEmailVerificationPayload = Omit<VerifyEmailPayload, 'otp'>;
 export type ForgotPasswordPayload = z.infer<typeof ForgotPasswordSchema>;
 export type ResetPasswordPayload = z.infer<typeof ResetPasswordSchema>;
-export type RequestResetPasswordPayload = Pick<ResetPasswordPayload, 'email'>;
+export type RequestResetPasswordPayload = z.infer<typeof ForgotPasswordSchema>;
 
 export const login = async (payload: LoginPayload): Promise<string> => {
   const { data } = await publicApiClient.post<ApiResponse<LoginResponse>>('auth/login', payload);

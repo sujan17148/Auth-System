@@ -14,7 +14,7 @@ import {
   registerUser,
   RegisterUserSchema,
   type RegisterUserPayload,
-} from '@/features/auth/api/auth';
+} from '@/features/api/auth';
 import { toast } from 'sonner';
 import { extractError } from '@/utility/extractError';
 import { queryClient } from '@/services/queryClient';
@@ -54,7 +54,7 @@ export default function Register() {
       queryClient.setQueryData(APP_QUERY_KEYS.auth.me, newUser);
       await login({ identifier: data.email, password: data.password });
       reset();
-      const isAdmin = newUser.role === 'Admin';
+      const isAdmin = newUser.role === 'ADMIN';
       navigate(isAdmin ? '/app/admin' : '/app');
       toast.success('Registration successfull');
     } catch (err) {
