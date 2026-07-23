@@ -35,6 +35,7 @@ export default function ForgotPassword() {
   });
 
   const submitForgotPasswordForm = async (data: ForgotPasswordPayload) => {
+    setError(null);
     try {
       await requestPasswordReset(data);
       toast.success('Request to reset password has been sent');

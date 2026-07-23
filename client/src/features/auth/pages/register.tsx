@@ -73,6 +73,9 @@ export default function Register() {
         </div>
 
         <h1 className="mb-3 text-center text-2xl font-bold">Create your account</h1>
+        <p className="text-sm text-muted-foreground text-center mb-3">
+          Create an account to get started with Auth System.
+        </p>
 
         {error && (
           <Alert variant="destructive" className="mb-4">
@@ -155,7 +158,7 @@ export default function Register() {
           </Button>
         </form>
 
-        <div className="mt-6 space-y-3">
+        <div className="mt-4 ">
           <div className="flex items-center gap-3">
             <div className="h-px flex-1 bg-border" />
             <span className="text-xs text-muted-foreground">OR</span>

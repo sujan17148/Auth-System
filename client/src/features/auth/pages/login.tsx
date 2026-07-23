@@ -58,11 +58,11 @@ export default function Login() {
             <Sparkles className="h-6 w-6 text-primary-foreground" />
           </div>
         </div>
-        <h1 className="text-2xl font-display font-bold text-center mb-1">Welcome back</h1>
-        <p className="text-sm text-muted-foreground text-center mb-6">Log in to your account</p>
+        <h1 className="text-2xl font-display font-bold text-center">Welcome back</h1>
+        <p className="text-sm text-muted-foreground text-center mb-3">Log in to your account</p>
 
         {error && (
-          <Alert variant="destructive" className="mb-4">
+          <Alert variant="destructive" className="mb-3">
             <AlertTitle>Unable to Login</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
@@ -109,7 +109,7 @@ export default function Login() {
           </Button>
         </form>
 
-        <div className="mt-6 space-y-3">
+        <div className="mt-4">
           <div className="flex items-center gap-3">
             <div className="h-px flex-1 bg-border" />
             <span className="text-xs text-muted-foreground">OR</span>

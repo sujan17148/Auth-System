@@ -2,13 +2,14 @@ import AdminDashboardPage from '@/admin';
 import PublicLayout from '@/components/layout/public-layout';
 import { useAuthContext } from '@/context/auth-context';
 import ForgotPassword from '@/features/auth/pages/forgot-password';
-import HomePage from '@/features/auth/pages/home';
+import HomePage from '@/features/pages/home';
 import Login from '@/features/auth/pages/login';
 import Register from '@/features/auth/pages/register';
 import ResetPassword from '@/features/auth/pages/reset-password';
 import SettingsPage from '@/features/settings';
 import UserDashboardPage from '@/features/user';
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import NotFound from '@/features/pages/not-found';
 
 function App() {
   const { isLoading } = useAuthContext();
@@ -40,6 +41,8 @@ function App() {
           <Route path="reset-password" element={<ResetPassword />} />
         </Route>
       </Route>
+
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
