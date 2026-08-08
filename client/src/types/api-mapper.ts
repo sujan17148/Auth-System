@@ -1,3 +1,11 @@
+import type { ErrorCode } from '@/lib/errorCodes';
+
+export interface ApiErrorResponse {
+  status: string;
+  message: string;
+  code: ErrorCode;
+}
+
 export interface ApiResponse<T> {
   message: string;
   data: T;

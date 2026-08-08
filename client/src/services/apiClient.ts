@@ -1,6 +1,8 @@
 import { APP_QUERY_KEYS } from '@/constants/queryKeys';
 import { getAccessToken, refreshAccessToken, removeAccessToken } from '@/features/api/auth';
+import { ErrorCode } from '@/lib/errorCodes';
 import { queryClient } from '@/services/queryClient';
+import type { ApiErrorResponse } from '@/types/api-mapper';
 import axios, {
   AxiosError,
   AxiosHeaders,
@@ -61,28 +63,59 @@ apiClient.interceptors.request.use(
 
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => response,
-  async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+  async (error: AxiosError<ApiErrorResponse>) => {
+    const originalRequest = error.config as
+      | (InternalAxiosRequestConfig & { _retry?: boolean })
+      | undefined;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
+    if (!originalRequest || error.response?.status !== 401) {
+      return Promise.reject(error);
+    }
 
-      try {
-        const newToken = await runRefresh(refreshAccessToken);
-        if (newToken) {
-          const headers = AxiosHeaders.from(originalRequest.headers ?? {});
-          headers.set('Authorization', `Bearer ${newToken}`);
-          originalRequest.headers = headers;
-          return apiClient(originalRequest);
-        }
-      } catch {
-        // fall through
+    const errorCode = error.response?.data?.code as ErrorCode | undefined;
+
+    if (errorCode === ErrorCode.SESSION_REVOKED) {
+      removeAccessToken();
+
+      queryClient.setQueryData(APP_QUERY_KEYS.auth.me, null);
+      queryClient.removeQueries({
+        queryKey: APP_QUERY_KEYS.auth.me,
+      });
+
+      return Promise.reject(error);
+    }
+
+    const shouldRefresh = errorCode === ErrorCode.TOKEN_EXPIRED;
+
+    if (!shouldRefresh || originalRequest._retry) {
+      return Promise.reject(error);
+    }
+
+    originalRequest._retry = true;
+
+    try {
+      const newToken = await runRefresh(refreshAccessToken);
+
+      if (!newToken) {
+        throw new Error('Token refresh failed');
       }
 
+      const headers = AxiosHeaders.from(originalRequest.headers ?? {});
+
+      headers.set('Authorization', `Bearer ${newToken}`);
+
+      originalRequest.headers = headers;
+
+      return apiClient(originalRequest);
+    } catch {
       removeAccessToken();
+
       queryClient.setQueryData(APP_QUERY_KEYS.auth.me, null);
-      queryClient.removeQueries({ queryKey: APP_QUERY_KEYS.auth.me });
+      queryClient.removeQueries({
+        queryKey: APP_QUERY_KEYS.auth.me,
+      });
+
+      return Promise.reject(error);
     }
-    return Promise.reject(error);
   },
 );
