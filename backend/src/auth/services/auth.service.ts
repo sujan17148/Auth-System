@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import type {
   ChangePasswordData,
   CreateUserData,
+  EmailVerificationData,
   LoginData,
   LoginServiceData,
   LoginServiceResponse,
@@ -25,9 +26,9 @@ import { sessionService } from './session.service.js';
 import { prisma } from '../../lib/prisma.js';
 import { userRepository } from '../../repository/users/user.repository.js';
 import { passwordResetRepository } from '../../repository/password-reset/password-reset.repository.js';
-import { emailVerificationRepository } from '../../repository/email-verification/email-verification.repository.js';
 import { verificationTokenService } from './verification.service.js';
 import { config } from '../../config/config.js';
+import { redisClient } from '../../config/redis.js';
 
 export interface IAuthService {
   getUserById(id: string): Promise<SafeUserData | null>;
@@ -47,6 +48,10 @@ export interface IAuthService {
 class AuthService implements IAuthService {
   private readonly SALT_ROUNDS = 10;
   private readonly OTP_EXPIRY_MINUTES = 5;
+
+  private getEmailVerificationKey(userId: string): string {
+    return `email_verification:${userId}`;
+  }
 
   async getUserById(id: string): Promise<SafeUserData | null> {
     const user = await userRepository.getUserById(id);
@@ -134,19 +139,28 @@ class AuthService implements IAuthService {
     const user = await userRepository.getUserByEmail(data.email);
     if (!user) throw new NotFoundError('user not found');
 
-    const emailValidationToken = await emailVerificationRepository.getOtpByUserId(user.id);
+    const key = this.getEmailVerificationKey(user.id);
 
-    if (!emailValidationToken) throw new UnauthorizedError('Email could not be verified');
+    const storedTokenData = (await redisClient.hgetall(key)) as unknown as EmailVerificationData;
 
-    const isOtpExpired = emailValidationToken.expiresAt <= new Date();
+    if (!storedTokenData || Object.keys(storedTokenData).length === 0) {
+      throw new UnauthorizedError('Email could not be verified');
+    }
 
-    if (isOtpExpired) throw new UnauthorizedError('Otp has expired');
+    const { otpHash, attempts, maxAttempts } = storedTokenData;
 
-    const isMatch = await bcrypt.compare(data.otp, emailValidationToken.otpHash);
+    if (attempts >= maxAttempts) {
+      throw new UnauthorizedError('Maximum verification attempts exceeded');
+    }
 
-    if (!isMatch) throw new UnauthorizedError('Invalid email or otp');
+    const isMatch = verificationTokenService.verifyToken(data.otp, otpHash);
 
-    void emailVerificationRepository.deleteOtp(user.id);
+    if (!isMatch) {
+      await redisClient.hincrby(key, 'attempts', 1);
+      throw new UnauthorizedError('Invalid email or otp');
+    }
+
+    void redisClient.del(key);
 
     const tempUser = await userRepository.verifyEmail(user.id);
     void mailService.sendWelcomeEmail({ email: user.email, firstName: user.firstName });
@@ -161,11 +175,20 @@ class AuthService implements IAuthService {
       throw new ForbiddenError('Your account has been deactivated.');
     }
 
+    if (user.emailVerified) {
+      throw new ConflictError('Email is already verified.');
+    }
+
     const otp = verificationTokenService.generateOTP();
     const otpHash = verificationTokenService.hashToken(otp);
-    const expiresAt = new Date(Date.now() + this.OTP_EXPIRY_MINUTES * 60 * 1000);
 
-    await emailVerificationRepository.upsertOtp({ userId: user.id, otpHash, expiresAt });
+    const key = this.getEmailVerificationKey(user.id);
+
+    const payload: EmailVerificationData = { otpHash, attempts: '0', maxAttempts: '3' };
+
+    await redisClient.hset(key, payload);
+
+    await redisClient.expire(key, this.OTP_EXPIRY_MINUTES * 60);
 
     void mailService.sendVerificationEmail({ email: user.email, firstName: user.firstName, otp });
   }

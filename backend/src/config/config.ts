@@ -44,4 +44,6 @@ export const config = {
   oauthStateExpiry: requireEnv('OAUTH_STATE_EXPIRY'),
 
   clientUrl: requireEnv('CLIENT_URL'),
+
+  redisUrl: requireEnv('REDIS_URL'),
 } as const;

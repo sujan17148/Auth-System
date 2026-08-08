@@ -41,9 +41,18 @@ export interface LoginServiceData extends LoginData {
   userAgent: string;
 }
 
-export type updateProfileData = z.infer<typeof UpdateProfileSchema>;
-export type ChangePasswordData = z.infer<typeof ChangePasswordSchema>;
+export type VerifyEmailData = z.infer<typeof VerifyEmailSchema>;
+export type RequestEmailVerificationData = z.infer<typeof RequestEmailVerificationSchema>;
+
+export interface EmailVerificationData {
+  otpHash: string;
+  attempts: string;
+  maxAttempts: string;
+}
+
 export type RequestPasswordResetData = z.infer<typeof RequestPasswordResetSchema>;
 export type ResetPasswordData = z.infer<typeof ResetPasswordSchema>;
-export type RequestEmailVerificationData = z.infer<typeof RequestEmailVerificationSchema>;
-export type VerifyEmailData = z.infer<typeof VerifyEmailSchema>;
+export type PasswordResetData = EmailVerificationData;
+
+export type updateProfileData = z.infer<typeof UpdateProfileSchema>;
+export type ChangePasswordData = z.infer<typeof ChangePasswordSchema>;

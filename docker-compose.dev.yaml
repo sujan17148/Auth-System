@@ -6,6 +6,11 @@ services:
     volumes:
       - auth_system_postgres_data:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+
   backend:
     build:
       context: ./backend
@@ -14,6 +19,7 @@ services:
       - ./backend/.env
     depends_on:
       - postgres
+      - redis
     volumes:
       - ./backend:/app
       - /app/node_modules
@@ -30,3 +36,4 @@ services:
 
 volumes:
   auth_system_postgres_data:
+  redis_data:
