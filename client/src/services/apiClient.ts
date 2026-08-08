@@ -1,6 +1,5 @@
 import { APP_QUERY_KEYS } from '@/constants/queryKeys';
 import { getAccessToken, refreshAccessToken, removeAccessToken } from '@/features/api/auth';
-import { config } from '@/lib/config';
 import { queryClient } from '@/services/queryClient';
 import axios, {
   AxiosError,
@@ -11,7 +10,7 @@ import axios, {
 import { jwtDecode } from 'jwt-decode';
 
 export const apiClient = axios.create({
-  baseURL: config.apiUrl,
+  baseURL: '/api',
   withCredentials: true,
 });
 

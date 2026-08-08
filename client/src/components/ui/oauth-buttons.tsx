@@ -1,5 +1,4 @@
 import { Button } from '@/components/ui/button';
-import { config } from '@/lib/config';
 import { FcGoogle } from 'react-icons/fc';
 import { FaGithub } from 'react-icons/fa6';
 
@@ -10,7 +9,7 @@ export function LoginWithGoogleButton() {
       variant="outline"
       className="w-full mt-4"
       onClick={() => {
-        window.location.href = `${config.apiUrl}/oauth/google`;
+        window.location.href = `api/oauth/google`;
       }}
     >
       <FcGoogle /> Continue with Google
@@ -25,7 +24,7 @@ export function LoginWithGithubButton() {
       variant="outline"
       className="w-full mt-4"
       onClick={() => {
-        window.location.href = `${config.apiUrl}/oauth/github`;
+        window.location.href = `api/oauth/github`;
       }}
     >
       <FaGithub /> Continue with Github

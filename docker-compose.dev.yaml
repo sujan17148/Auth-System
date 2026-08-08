@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: postgres:17
+    env_file:
+      - ./backend/.env
+    volumes:
+      - auth_system_postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - postgres
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.dev
+    ports:
+      - '5173:5173'
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+
+volumes:
+  auth_system_postgres_data:

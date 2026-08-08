@@ -5,10 +5,21 @@ const requireEnv = (key: string): string => {
   return value;
 };
 
+const requireNumberEnv = (key: string): number => {
+  const value = requireEnv(key);
+  const parsed = Number(value);
+
+  if (Number.isNaN(parsed)) {
+    throw new Error(`${key} must be a valid number`);
+  }
+
+  return parsed;
+};
+
 export const config = {
   databaseUrl: requireEnv('DATABASE_URL'),
   nodeEnvironment: requireEnv('NODE_ENV'),
-  serverPort: requireEnv('PORT'),
+  serverPort: requireNumberEnv('PORT'),
   accessTokenKey: requireEnv('ACCESSS_TOKEN_SECRET_KEY'),
   accessTokenExpiry: requireEnv('ACCESS_TOKEN_EXPIRY'),
   refreshTokenKey: requireEnv('REFRESH_TOKEN_SECRET_KEY'),
@@ -17,7 +28,7 @@ export const config = {
   isProduction: process.env.NODE_ENV === 'production',
 
   smtpHost: requireEnv('SMTP_HOST'),
-  smtpPort: requireEnv('SMTP_PORT'),
+  smtpPort: requireNumberEnv('SMTP_PORT'),
   smtpUser: requireEnv('SMTP_USER'),
   smtpPassword: requireEnv('SMTP_PASS'),
 
@@ -29,8 +40,8 @@ export const config = {
   githubClientSecret: requireEnv('GITHUB_CLIENT_SECRET'),
   githubRedirectUri: requireEnv('GITHUB_REDIRECT_URI'),
 
-  oauthStateSecret:requireEnv('OAUTH_STATE_SECRET'),
-  oauthStateExpiry:requireEnv('OAUTH_STATE_EXPIRY'),
+  oauthStateSecret: requireEnv('OAUTH_STATE_SECRET'),
+  oauthStateExpiry: requireEnv('OAUTH_STATE_EXPIRY'),
 
   clientUrl: requireEnv('CLIENT_URL'),
 } as const;
