@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import type { NextFunction, Request, Response } from 'express';
-import { ForbiddenError, UnauthorizedError } from '../utility/apiError.js';
+import { ErrorCode, ForbiddenError, UnauthorizedError } from '../utility/apiError.js';
 import { authService } from '../auth/services/auth.service.js';
 import { config } from '../config/config.js';
 import type { TokenPayload } from '../auth/types/auth.types.js';
@@ -10,18 +10,24 @@ import type { AuthRequest } from '../types/express.js';
 
 export const verifyJWT = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const token = req.header('authorization')?.split(' ')[1];
-  if (!token) throw new UnauthorizedError();
+  if (!token) throw new UnauthorizedError('Authorization token is missing');
 
-  const decodedToken = jwt.verify(token, config.accessTokenKey) as TokenPayload;
-  const user = await authService.getUserById(decodedToken.id);
-  if (!user) throw new UnauthorizedError('Invalid or expired access token');
+  try {
+    const decodedToken = jwt.verify(token, config.accessTokenKey) as TokenPayload;
+    const user = await authService.getUserById(decodedToken.id);
+    if (!user) throw new UnauthorizedError('Invalid or expired token');
 
-  if (!user.isActive) {
-    throw new ForbiddenError('Account has been deactivated.');
+    if (!user.isActive) {
+      throw new ForbiddenError('Account has been deactivated.');
+    }
+    req.user = user;
+    next();
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      throw new UnauthorizedError('Access token expired', ErrorCode.TOKEN_EXPIRED);
+    }
+    throw new UnauthorizedError('Invalid access token');
   }
-
-  req.user = user;
-  next();
 });
 
 export const authorize =
@@ -38,7 +44,7 @@ export const authorize =
     next();
   };
 
-export const requireVerifiedEmail = () => (req: AuthRequest, res: Response, next: NextFunction) => {
+export const requireVerifiedEmail = (req: AuthRequest, res: Response, next: NextFunction) => {
   const user = req?.user;
   if (!user) {
     throw new UnauthorizedError();

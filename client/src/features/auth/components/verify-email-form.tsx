@@ -45,13 +45,14 @@ export function VerifyEmailForm({ email, onClose }: VerifyEmailFormProps) {
       onClose();
       toast.success('Email verified successfully');
     } catch (err) {
-      reset({ otp: '' });
+      reset({ otp: '', email });
       setError(extractError(err) || 'something went wrong');
     }
   };
 
   const resendVerificationCode = async () => {
     setError(null);
+     reset({ otp: '', email });
     try {
       await requestVerifyEmail({ email: email });
       toast.success('Email verification request sent  successfully');
