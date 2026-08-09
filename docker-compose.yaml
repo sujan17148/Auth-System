@@ -21,8 +21,18 @@ services:
 
   client:
     build: ./client
+    depends_on:
+      - backend
+
+  nginx:
+    image: nginx:alpine
     ports:
-      - '5173:5173'
+      - '80:80'
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - client
+      - backend
 
 volumes:
   auth_system_postgres_data:
