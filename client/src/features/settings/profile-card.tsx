@@ -1,7 +1,7 @@
 import { User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import type { CurrentUser } from '@/features/auth/api/auth';
+import type { CurrentUser } from '@/features/api/auth';
 
 interface ProfileCardProps {
   user: CurrentUser;

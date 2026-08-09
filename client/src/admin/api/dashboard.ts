@@ -1,4 +1,4 @@
-import type { CurrentUser } from '@/features/auth/api/auth';
+import type { CurrentUser } from '@/features/api/auth';
 import { apiClient } from '@/services/apiClient';
 import { mapApiResponse, type ApiResponse } from '@/types/api-mapper';
 

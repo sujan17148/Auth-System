@@ -52,7 +52,6 @@ export interface EmailVerificationData {
 
 export type RequestPasswordResetData = z.infer<typeof RequestPasswordResetSchema>;
 export type ResetPasswordData = z.infer<typeof ResetPasswordSchema>;
-export type PasswordResetData = EmailVerificationData;
 
 export type updateProfileData = z.infer<typeof UpdateProfileSchema>;
 export type ChangePasswordData = z.infer<typeof ChangePasswordSchema>;

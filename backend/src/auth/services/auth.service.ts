@@ -25,7 +25,6 @@ import { tokenService, type TokenPair } from './token.service.js';
 import { sessionService } from './session.service.js';
 import { prisma } from '../../lib/prisma.js';
 import { userRepository } from '../../repository/users/user.repository.js';
-import { passwordResetRepository } from '../../repository/password-reset/password-reset.repository.js';
 import { verificationTokenService } from './verification.service.js';
 import { config } from '../../config/config.js';
 import { redisClient } from '../../config/redis.js';
@@ -51,6 +50,10 @@ class AuthService implements IAuthService {
 
   private getEmailVerificationKey(userId: string): string {
     return `email_verification:${userId}`;
+  }
+
+  private getPasswordResetKey(tokenHash: string): string {
+    return `password_reset:${tokenHash}`;
   }
 
   async getUserById(id: string): Promise<SafeUserData | null> {
@@ -216,16 +219,12 @@ class AuthService implements IAuthService {
 
     const token = verificationTokenService.generateSecureToken();
     const tokenHash = verificationTokenService.hashToken(token);
-    const expiresAt = new Date(Date.now() + this.OTP_EXPIRY_MINUTES * 60 * 1000);
 
-    await passwordResetRepository.upsertToken({
-      userId: user.id,
-      tokenHash,
-      expiresAt,
-    });
+    const key = this.getPasswordResetKey(tokenHash);
+
+    await redisClient.set(key, user.id, 'EX', this.OTP_EXPIRY_MINUTES * 60);
 
     const resetLink = `${config.clientUrl}/auth/reset-password?code=${token}`;
-
     void mailService.sendPasswordResetEmail({
       email: user.email,
       firstName: user.firstName,
@@ -236,19 +235,15 @@ class AuthService implements IAuthService {
   async resetPassword(data: ResetPasswordData): Promise<void> {
     const incomingTokenHash = verificationTokenService.hashToken(data.code);
 
-    const passwordResetToken = await passwordResetRepository.getTokenByHash(incomingTokenHash);
+    const key = this.getPasswordResetKey(incomingTokenHash);
 
-    if (!passwordResetToken) {
+    const userId = await redisClient.get(key);
+
+    if (!userId) {
       throw new UnauthorizedError('This password reset link is invalid or has already been used.');
     }
 
-    if (passwordResetToken.expiresAt <= new Date()) {
-      throw new UnauthorizedError(
-        'This password reset link has expired. Please request a new one.',
-      );
-    }
-
-    const user = await userRepository.getUserById(passwordResetToken.userId);
+    const user = await userRepository.getUserById(userId);
 
     if (!user) {
       throw new NotFoundError('User not found.');
@@ -275,11 +270,9 @@ class AuthService implements IAuthService {
       await tx.session.deleteMany({
         where: { userId: user.id },
       });
-
-      await tx.passwordResetToken.deleteMany({
-        where: { userId: user.id },
-      });
     });
+
+    await redisClient.del(key);
   }
 
   async updateProfile(userId: string, data: updateProfileData): Promise<SafeUserData> {
