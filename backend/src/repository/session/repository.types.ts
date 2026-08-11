@@ -5,10 +5,11 @@ export type SafeSession = Omit<Session, 'refreshTokenHash'>;
 export interface ISessionRepository {
   createSession(data: Prisma.SessionUncheckedCreateInput): Promise<Session>;
 
-  getUserSessions(userId: string): Promise<SafeSession[]>;
-  getUserSessionsForAuth(userId: string): Promise<Session[]>;
+  getSession(sessionId: string): Promise<Session | null>;
 
-  updateLastActivity(sessionId: string): Promise<SafeSession>;
+  getUserSessions(userId: string): Promise<SafeSession[]>;
+
+  updateLastActivity(sessionId: string): Promise<Session>;
 
   deleteSession(sessionId: string): Promise<void>;
 

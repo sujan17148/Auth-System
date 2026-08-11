@@ -11,9 +11,9 @@ export interface TokenPair {
 }
 
 export interface ITokenService {
-  generateAccessToken(user: SafeUserData): string;
-  generateRefreshToken(user: SafeUserData): string;
-  generateTokenPair(user: SafeUserData): TokenPair;
+  generateAccessToken(user: SafeUserData, sessionId: string): string;
+  generateRefreshToken(user: SafeUserData, sessionId: string): string;
+  generateTokenPair(user: SafeUserData, sessionId: string): TokenPair;
   verifyAccessToken(accessToken: string): TokenPayload;
   verifyRefreshToken(refreshToken: string): TokenPayload;
   hashRefreshToken(refreshToken: string): Promise<string>;
@@ -35,31 +35,33 @@ class TokenService implements ITokenService {
     expiresIn: this.refreshTokenExpiry as string & SignOptions['expiresIn'],
   };
 
-  generateAccessToken(user: SafeUserData): string {
+  generateAccessToken(user: SafeUserData, sessionId: string): string {
     return jwt.sign(
       {
         id: user.id,
         role: user.role,
+        sessionId,
       },
       this.accessTokenSecret,
       this.accessOptions,
     );
   }
 
-  generateRefreshToken(user: SafeUserData): string {
+  generateRefreshToken(user: SafeUserData, sessionId: string): string {
     return jwt.sign(
       {
         id: user.id,
         role: user.role,
+        sessionId,
       },
       this.refreshTokenSecret,
       this.refreshOptions,
     );
   }
 
-  generateTokenPair(user: SafeUserData): TokenPair {
-    const refreshToken = this.generateRefreshToken(user);
-    const accessToken = this.generateAccessToken(user);
+  generateTokenPair(user: SafeUserData, sessionId: string): TokenPair {
+    const refreshToken = this.generateRefreshToken(user, sessionId);
+    const accessToken = this.generateAccessToken(user, sessionId);
     const refreshTokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     return { accessToken, refreshToken, refreshTokenExpiresAt };
   }

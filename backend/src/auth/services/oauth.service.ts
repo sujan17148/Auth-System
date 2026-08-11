@@ -11,6 +11,7 @@ import { oAuthRepository } from '../../repository/oauth-account/oauth-account.re
 import { sessionService } from './session.service.js';
 import { emailQueue } from '../../queue/queues.js';
 import { EmailJobType } from '../../queue/worker.js';
+import { randomUUID } from 'node:crypto';
 
 interface ResolveOAuthUserInput {
   provider: OAuthProvider;
@@ -210,9 +211,12 @@ class OAuthService implements IOAuthService {
       throw new ForbiddenError('Your account has been suspended.');
     }
 
-    const tokenPair = tokenService.generateTokenPair(user);
+    const sessionId = randomUUID();
+
+    const tokenPair = tokenService.generateTokenPair(user, sessionId);
 
     await sessionService.createSession({
+      id: sessionId,
       userId: user.id,
       refreshToken: tokenPair.refreshToken,
       expiresAt: tokenPair.refreshTokenExpiresAt,

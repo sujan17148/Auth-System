@@ -1,4 +1,4 @@
-import { userCacheService } from '../../auth/services/user-cache.service.js';
+import { userCacheService } from '../../auth/services/cache.service.js';
 import type { SafeUserData } from '../../auth/types/auth.types.js';
 import { Role } from '../../generated/prisma/client.js';
 import type { SafeSession } from '../../repository/session/repository.types.js';

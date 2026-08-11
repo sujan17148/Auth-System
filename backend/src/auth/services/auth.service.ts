@@ -27,9 +27,10 @@ import { userRepository } from '../../repository/users/user.repository.js';
 import { verificationTokenService } from './verification.service.js';
 import { config } from '../../config/config.js';
 import { redisClient } from '../../config/redis.js';
-import { userCacheService } from './user-cache.service.js';
+import { sessionCacheService, userCacheService } from './cache.service.js';
 import { emailQueue } from '../../queue/queues.js';
 import { EmailJobType } from '../../queue/worker.js';
+import { randomUUID } from 'node:crypto';
 
 export interface IAuthService {
   getUserById(id: string): Promise<SafeUserData>;
@@ -117,9 +118,12 @@ class AuthService implements IAuthService {
       throw new ForbiddenError('Your account has been deactivated.');
     }
 
-    const tokenPair = tokenService.generateTokenPair(user);
+    const sessionId = randomUUID();
+
+    const tokenPair = tokenService.generateTokenPair(user, sessionId);
 
     await sessionService.createSession({
+      id: sessionId,
       userId: user.id,
       refreshToken: tokenPair.refreshToken,
       expiresAt: tokenPair.refreshTokenExpiresAt,
@@ -141,7 +145,7 @@ class AuthService implements IAuthService {
       throw new ForbiddenError('Account has been deactivated.');
     }
 
-    const accessToken = tokenService.generateAccessToken(user);
+    const accessToken = tokenService.generateAccessToken(user, session.id);
     await sessionService.updateLastActivity(session.id);
     return accessToken;
   }
@@ -286,7 +290,7 @@ class AuthService implements IAuthService {
 
     const passwordHash = await bcrypt.hash(data.newPassword, this.SALT_ROUNDS);
 
-    await prisma.$transaction(async (tx) => {
+    const sessionIds = await prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: user.id },
         data: {
@@ -294,11 +298,21 @@ class AuthService implements IAuthService {
         },
       });
 
+      const sessions = await tx.session.findMany({
+        where: { userId: user.id },
+        select: { id: true },
+      });
+
       await tx.session.deleteMany({
         where: { userId: user.id },
       });
+
+      return sessions.map((session) => session.id);
     });
 
+    await sessionCacheService.invalidateAll(sessionIds);
+
+    // Invalidate password-reset token
     await redisClient.del(key);
   }
 
@@ -348,7 +362,7 @@ class AuthService implements IAuthService {
 
     const passwordHash = await bcrypt.hash(data.newPassword, this.SALT_ROUNDS);
 
-    const updatedUser = await prisma.$transaction(async (tx) => {
+    const { updatedUser, sessionIds } = await prisma.$transaction(async (tx) => {
       const tempUser = await tx.user.update({
         where: { id: user.id },
         data: {
@@ -357,13 +371,27 @@ class AuthService implements IAuthService {
         omit: { passwordHash: true },
       });
 
+      const sessions = await tx.session.findMany({
+        where: {
+          userId: user.id,
+        },
+        select: {
+          id: true,
+        },
+      });
+
       await tx.session.deleteMany({
         where: {
           userId: user.id,
         },
       });
-      return tempUser;
+      return {
+        updatedUser: tempUser,
+        sessionIds: sessions.map((session) => session.id),
+      };
     });
+
+    await sessionCacheService.invalidateAll(sessionIds);
 
     return updatedUser;
   }

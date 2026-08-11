@@ -15,6 +15,7 @@ import type {
 export interface TokenPayload {
   id: string;
   role: Role;
+  sessionId: string;
 }
 
 export interface LoginResponse {
