@@ -9,7 +9,7 @@ export function LoginWithGoogleButton() {
       variant="outline"
       className="w-full mt-4"
       onClick={() => {
-        window.location.href = `api/oauth/google`;
+        window.location.href = `/api/oauth/google`;
       }}
     >
       <FcGoogle /> Continue with Google
@@ -24,7 +24,7 @@ export function LoginWithGithubButton() {
       variant="outline"
       className="w-full mt-4"
       onClick={() => {
-        window.location.href = `api/oauth/github`;
+        window.location.href = `/api/oauth/github`;
       }}
     >
       <FaGithub /> Continue with Github
