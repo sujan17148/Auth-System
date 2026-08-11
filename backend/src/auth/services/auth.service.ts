@@ -28,9 +28,10 @@ import { userRepository } from '../../repository/users/user.repository.js';
 import { verificationTokenService } from './verification.service.js';
 import { config } from '../../config/config.js';
 import { redisClient } from '../../config/redis.js';
+import { userCacheService } from './user-cache.service.js';
 
 export interface IAuthService {
-  getUserById(id: string): Promise<SafeUserData | null>;
+  getUserById(id: string): Promise<SafeUserData>;
   registerUser(data: CreateUserData): Promise<SafeUserData>;
   login(data: LoginData): Promise<LoginServiceResponse>;
   rotateToken(token: string): Promise<string>;
@@ -38,6 +39,7 @@ export interface IAuthService {
   requestEmailVerification(data: RequestEmailVerificationData): Promise<void>;
   requestPasswordReset(data: RequestPasswordResetData): Promise<void>;
   resetPassword(data: ResetPasswordData): Promise<void>;
+  updateProfile(userId: string, data: updateProfileData): Promise<SafeUserData>;
   changePassword(userId: string, data: ChangePasswordData): Promise<SafeUserData>;
   changeUsername(userId: string, username: string): Promise<SafeUserData>;
   logoutUser(refreshToken: string): Promise<void>;
@@ -56,9 +58,14 @@ class AuthService implements IAuthService {
     return `password_reset:${tokenHash}`;
   }
 
-  async getUserById(id: string): Promise<SafeUserData | null> {
+  async getUserById(id: string): Promise<SafeUserData> {
+    const cachedUser = await userCacheService.get(id);
+    if (cachedUser) {
+      return cachedUser;
+    }
     const user = await userRepository.getUserById(id);
     if (!user) throw new NotFoundError('User not found');
+    await userCacheService.set(user);
     return user;
   }
 
@@ -166,6 +173,7 @@ class AuthService implements IAuthService {
     void redisClient.del(key);
 
     const tempUser = await userRepository.verifyEmail(user.id);
+    await userCacheService.invalidate(user.id);
     void mailService.sendWelcomeEmail({ email: user.email, firstName: user.firstName });
     return tempUser;
   }
@@ -284,7 +292,10 @@ class AuthService implements IAuthService {
       }
     }
 
-    return await userRepository.updateProfile(userId, data);
+    const user = await userRepository.updateProfile(userId, data);
+    await userCacheService.invalidate(userId);
+
+    return user;
   }
 
   async changeUsername(userId: string, username: string): Promise<SafeUserData> {

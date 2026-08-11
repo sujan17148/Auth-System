@@ -1,3 +1,4 @@
+import { userCacheService } from '../../auth/services/user-cache.service.js';
 import type { SafeUserData } from '../../auth/types/auth.types.js';
 import { Role } from '../../generated/prisma/client.js';
 import type { SafeSession } from '../../repository/session/repository.types.js';
@@ -46,7 +47,10 @@ class AdminUserService implements IAdminUserService {
       throw new ForbiddenError('Admin accounts cannot be modified.');
     }
 
-    return await userRepository.changeUserActiveStatus(userId, isActive);
+    const updatedUser = await userRepository.changeUserActiveStatus(userId, isActive);
+    await userCacheService.invalidate(userId);
+
+    return updatedUser;
   }
 }
 
