@@ -20,7 +20,6 @@ import {
   NotFoundError,
   UnauthorizedError,
 } from '../../utility/apiError.js';
-import { mailService } from '../../mail/mail.service.js';
 import { tokenService, type TokenPair } from './token.service.js';
 import { sessionService } from './session.service.js';
 import { prisma } from '../../lib/prisma.js';
@@ -29,6 +28,8 @@ import { verificationTokenService } from './verification.service.js';
 import { config } from '../../config/config.js';
 import { redisClient } from '../../config/redis.js';
 import { userCacheService } from './user-cache.service.js';
+import { emailQueue } from '../../queue/queues.js';
+import { EmailJobType } from '../../queue/worker.js';
 
 export interface IAuthService {
   getUserById(id: string): Promise<SafeUserData>;
@@ -174,7 +175,10 @@ class AuthService implements IAuthService {
 
     const tempUser = await userRepository.verifyEmail(user.id);
     await userCacheService.invalidate(user.id);
-    void mailService.sendWelcomeEmail({ email: user.email, firstName: user.firstName });
+    await emailQueue.add(EmailJobType.WELCOME_EMAIL, {
+      email: user.email,
+      firstName: user.firstName,
+    });
     return tempUser;
   }
 
@@ -201,7 +205,17 @@ class AuthService implements IAuthService {
 
     await redisClient.expire(key, this.OTP_EXPIRY_MINUTES * 60);
 
-    void mailService.sendVerificationEmail({ email: user.email, firstName: user.firstName, otp });
+    await emailQueue.add(
+      EmailJobType.EMAIL_VERIFICATION_EMAIL,
+      {
+        email: user.email,
+        firstName: user.firstName,
+        otp,
+      },
+      {
+        priority: 1,
+      },
+    );
   }
 
   async requestPasswordReset(data: RequestPasswordResetData): Promise<void> {
@@ -233,11 +247,16 @@ class AuthService implements IAuthService {
     await redisClient.set(key, user.id, 'EX', this.OTP_EXPIRY_MINUTES * 60);
 
     const resetLink = `${config.clientUrl}/auth/reset-password?code=${token}`;
-    void mailService.sendPasswordResetEmail({
-      email: user.email,
-      firstName: user.firstName,
-      resetLink,
-    });
+
+    await emailQueue.add(
+      EmailJobType.PASSWORD_RESET_EMAIL,
+      {
+        email: user.email,
+        firstName: user.firstName,
+        resetLink,
+      },
+      { priority: 1 },
+    );
   }
 
   async resetPassword(data: ResetPasswordData): Promise<void> {

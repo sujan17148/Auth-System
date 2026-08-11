@@ -9,7 +9,8 @@ import { tokenService, type TokenPair } from './token.service.js';
 import { userRepository } from '../../repository/users/user.repository.js';
 import { oAuthRepository } from '../../repository/oauth-account/oauth-account.repository.js';
 import { sessionService } from './session.service.js';
-import { mailService } from '../../mail/mail.service.js';
+import { emailQueue } from '../../queue/queues.js';
+import { EmailJobType } from '../../queue/worker.js';
 
 interface ResolveOAuthUserInput {
   provider: OAuthProvider;
@@ -162,7 +163,7 @@ class OAuthService implements IOAuthService {
       //auth provider verified the email so if not verified by default jsut verify now
       if (!existingUser.emailVerified) {
         const verifiedUser = await userRepository.verifyEmail(existingUser.id);
-        void mailService.sendWelcomeEmail({
+        await emailQueue.add(EmailJobType.WELCOME_EMAIL, {
           email: verifiedUser.email,
           firstName: verifiedUser.firstName,
         });
@@ -194,7 +195,7 @@ class OAuthService implements IOAuthService {
       return created;
     });
 
-    void mailService.sendWelcomeEmail({
+    await emailQueue.add(EmailJobType.WELCOME_EMAIL, {
       email: newUser.email,
       firstName: newUser.firstName,
     });
