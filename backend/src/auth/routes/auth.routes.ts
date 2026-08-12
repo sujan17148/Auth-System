@@ -13,15 +13,26 @@ import {
 import { asyncHandler } from '../../utility/asyncHandler.js';
 import { authController } from '../controllers/auth.controller.js';
 import { verifyJWT } from '../../middlewares/auth.middlewares.js';
+import {
+  loginRateLimiter,
+  passwordChangeAttemptRateLimiter,
+  passwordResetRateLimiter,
+} from '../../middlewares/rateLimits.middlewares.js';
 
 const router = Router();
 
 router.get('/me', verifyJWT, asyncHandler(authController.me));
 
-router.post('/login', validateSchema({ body: LoginSchema }), asyncHandler(authController.login));
+router.post(
+  '/login',
+  loginRateLimiter,
+  validateSchema({ body: LoginSchema }),
+  asyncHandler(authController.login),
+);
 
 router.post(
   '/register',
+  loginRateLimiter,
   validateSchema({ body: CreateUserSchema }),
   asyncHandler(authController.register),
 );
@@ -46,18 +57,21 @@ router.post(
 
 router.post(
   '/request-password-reset',
+  passwordResetRateLimiter,
   validateSchema({ body: RequestPasswordResetSchema }),
   asyncHandler(authController.requestPasswordReset),
 );
 
 router.post(
   '/reset-password',
+  passwordChangeAttemptRateLimiter,
   validateSchema({ body: ResetPasswordSchema }),
   asyncHandler(authController.resetPassword),
 );
 
 router.patch(
   '/change-password',
+  passwordChangeAttemptRateLimiter,
   validateSchema({ body: ChangePasswordSchema }),
   verifyJWT,
   asyncHandler(authController.changePassword),

@@ -8,6 +8,7 @@ export enum ErrorCode {
   FORBIDDEN = 'FORBIDDEN',
   UNPROCESSABLE_ENTITY = 'UNPROCESSABLE_ENTITY',
   CONFLICT = 'CONFLICT',
+  TOO_MANY_REQUESTS = 'TOO_MANY_REQUESTS',
 
   TOKEN_EXPIRED = 'TOKEN_EXPIRED',
   SESSION_REVOKED = 'SESSION_REVOKED',
@@ -63,5 +64,11 @@ export class UnprocessableError extends ApiError {
 export class ConflictError extends ApiError {
   constructor(message = 'Resource already exists') {
     super(message, 409, ErrorCode.CONFLICT);
+  }
+}
+
+export class TooManyRequestsError extends ApiError {
+  constructor(message = 'Too many requests. Please try again later') {
+    super(message, 429, ErrorCode.TOO_MANY_REQUESTS);
   }
 }
